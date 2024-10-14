@@ -10,7 +10,6 @@ import {
   InputGroupAddon,
   InputGroupText,
   InputGroup,
-  Navbar,
 } from "reactstrap";
 import CVItem from "components/CVItem";
 

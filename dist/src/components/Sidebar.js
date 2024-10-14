@@ -13,8 +13,6 @@ import {
   Container,
 } from "reactstrap";
 
-var ps;
-
 const Sidebar = (props) => {
   const [collapseOpen, setCollapseOpen] = useState();
   // toggles collapse between opened and closed (true/false)

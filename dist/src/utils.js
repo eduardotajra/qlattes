@@ -5,47 +5,43 @@
  */
 
 // calculate the max, sum, mean, and median of an array
-Array.prototype.max = function () {
-  return Math.max.apply(null, this);
-};
+export function arrayMax(arr) {
+  return Math.max.apply(null, arr);
+}
 
-Array.prototype.sum = function () {
-  return this.reduce((a, b) => a + b, 0);
-};
+export function arraySum(arr) {
+  return arr.reduce((a, b) => a + b, 0);
+}
 
-Array.prototype.mean = function () {
-  return this.reduce((a, b) => a + b, 0) / this.length;
-};
+export function arrayMean(arr) {
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
 
-Array.prototype.median = function () {
-  const mid = Math.floor(this.length / 2);
-  const sorted = this.slice().sort((a, b) => a - b);
-  return this.length % 2 !== 0
+export function arrayMedian(arr) {
+  const mid = Math.floor(arr.length / 2);
+  const sorted = arr.slice().sort((a, b) => a - b);
+  return arr.length % 2 !== 0
     ? sorted[mid]
     : (sorted[mid - 1] + sorted[mid]) / 2;
-};
+}
 
 // sort an array of objects by their keys
-Array.prototype.sortByKeys = function (keys) {
-  var sortedArray = this.slice();
-
+export function sortArrayByKeys(arr, keys) {
+  const sortedArray = arr.slice();
   for (const key of keys.reverse()) {
     sortedArray.sort((a, b) => (a[key] < b[key] ? -1 : 1));
   }
-
   return sortedArray;
-};
+}
 
 // sort an array of objects by their keys
-Array.prototype.sortByKeysReverse = function (keys) {
-  var sortedArray = this.slice();
-
+export function sortArrayByKeysReverse(arr, keys) {
+  const sortedArray = arr.slice();
   for (const key of keys.reverse()) {
     sortedArray.sort((a, b) => (a[key] > b[key] ? -1 : 1));
   }
-
   return sortedArray;
-};
+}
 
 // linear regression implementation based on code from https://github.com/heofs/trendline/
 export function linearRegression(xData, yData) {
@@ -191,7 +187,7 @@ export async function removerCVfromDB(author) {
   const groupsData = await getGroups();
 
   // check if there is an 
-  if (Object.keys(lattesData).length == 0) {
+  if (Object.keys(lattesData).length === 0) {
     alert('Não achamos nenhum CV salvo.');
     return;
   }

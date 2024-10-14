@@ -45,7 +45,7 @@ const Index = ({
   const cvOptions = authorsNameLink.concat(Object.values(groups));
 
   function handleViewTypeChange(value) {
-    if ((value == "scoreTableView" || value == "scoreGraphicView") && Object.keys(areaData).length === 0) {
+    if ((value === "scoreTableView" || value === "scoreGraphicView") && Object.keys(areaData).length === 0) {
       alert(`Para visualizar a pontuação Qualis, é necessário selecionar uma Área do Conhecimento.`)
       return;
     }
@@ -379,7 +379,7 @@ const Index = ({
           {viewType === "top10View" && <TopTable tableName="10 melhores publicações" topN={10} init={initYearInput} end={endYearInput} pubInfo={pubInfo}/>}
         </>}
         {areaData?.scores && viewType.includes("score") && <div className="mt-1">
-          Fonte da pontuação: <a href={areaData.source.url} target="_blank" title={`Visualizar ${areaData.source.label}`}>{areaData.source.label}</a> da {areaData.label} (ano-base: {areaData.base_year})
+          Fonte da pontuação: <a href={areaData.source.url} target="_blank" rel='noreferrer' title={`Visualizar ${areaData.source.label}`}>{areaData.source.label}</a> da {areaData.label} (ano-base: {areaData.base_year})
         </div>}
       </Container>
     </>

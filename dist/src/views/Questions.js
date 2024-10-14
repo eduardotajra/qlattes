@@ -29,11 +29,11 @@ const Questions = () => {
             navegador. No segundo caso, a solução é habilitar a extensão. Para isso,
             clique no ícone de extensões do navegador (no formato de uma peça de
             quebra-cabeça, localizado ao lado da barra de endereço) e certifique-se de
-            que o botão ao lado do ícone da <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}}/> está 
+            que o botão ao lado do ícone da <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}} alt='logo'/> está 
             habilitado. No terceiro caso, a solução é dar permissão de acesso às
             páginas do Lattes à extensão. Para isso, clique no ícone de extensões do
             navegador e, em seguida, escolha a opção "Gerenciar extensão", ao lado do
-            ícone da <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}}/> (os 
+            ícone da <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}} alt='logo' /> (os 
             nomes das opções podem mudar, a depender do navegador utilizado e da
             língua padrão com que o navegador está configurado). Na página de
             gerenciamento da extensão, certifique-se de que esta tem permissão de
@@ -48,7 +48,7 @@ const Questions = () => {
             a mensagem "Nenhum CV disponível"
           </h4>
           <p>
-            Como explicado acima, <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}}/> precisa 
+            Como explicado acima, <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}} alt='logo'/> precisa 
             de permissão para anotar o Qualis dos periódicos na página dos
             CVs. Nos navegadores compatíveis com o Chromium, essa permissão é
             geralmente dada por padrão, durante a instalação da ferramenta. Já no
@@ -62,7 +62,7 @@ const Questions = () => {
             publicação cujo periódico está classificado no novo Qualis
           </h4>
           <p>
-          <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}}/> classifica os 
+          <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}} alt='logo'/> classifica os 
             artigos com base unicamente no ISSN dos periódicos que
             extrai do CV Lattes. Portanto, se a ferramenta não classificou
             corretamente algum artigo cujo periódico está classificado no Qualis,
@@ -87,7 +87,7 @@ const Questions = () => {
             publicação
           </h4>
           <p>
-            <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}}/> apenas classifica 
+            <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}} alt='logo'/> apenas classifica 
             o Qualis dos artigos em periódicos já publicados. Uma
             dificuldade para classificar os artigos aceitos é que nem todos os artigos
             aceitos cadastrados no Lattes possuem ISSN. Futuras versões da ferramenta
@@ -95,7 +95,7 @@ const Questions = () => {
           </p>
           <h4>Não encontrei respostas para a minha dúvida. E agora?</h4>
           <p>
-            Ainda continua com dúvidas sobre a <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}}/>? 
+            Ainda continua com dúvidas sobre a <img src={require("../assets/img/qlattes-logo.png")} width="100" style={{marginLeft: '-2px', marginTop: '-10px'}} alt='logo'/>? 
             Utilize o formulário disponível na aba "Comentários" para enviar uma
             mensagem aos desenvolvedores relatando a sua dúvida e ajude a melhorar a
             ferramenta.

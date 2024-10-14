@@ -7,7 +7,6 @@ import {
   InputGroupText,
   Input,
   InputGroup,
-  Navbar,
   Button,
   Modal,
   ModalBody,
@@ -121,14 +120,14 @@ const GroupList = ({
           <div className="col">
             {Object.entries(groups).map(group => {
               // If the selected item on search is a group (has an authors item), check if this group has the name selected
-              if (selectedOption?.authors && group[1].name !== selectedOption.name) return;
+              if (selectedOption?.authors && group[1].name !== selectedOption.name) return null;
 
               let groupAuthors = group[1].authors.map(authorLink => ({link: authorLink, name: authors[authorLink].name}));
 
               // If the selected item on search is a author (has a link item), check if this group has the author selected
               if (selectedOption?.link) {
                 groupAuthors = groupAuthors.filter(item => item.link === selectedOption.link)
-                if(groupAuthors.length === 0) return;
+                if(groupAuthors.length === 0) return null;
               }
 
               return <GroupItem

@@ -129,7 +129,7 @@ const DataTable = ({
     };
     for (const key of Object.keys(statistics)) {
       // update total stats lists
-      statistics[key].countList.push(yearCounts[key]);
+      statistics[key].countList = statistics[key].countList || [];
       statistics[key].yearList.push(stats.year[currYear]);
 
       // update total stats best
@@ -157,9 +157,9 @@ const DataTable = ({
   const trend = ["Tendência"].concat(Object.keys(qualis).map(item => ""));
   const bestYear = ["Melhor ano"].concat(Object.keys(qualis).map(item => ""));
   for (const col of Object.keys(statistics)) {
-    mean.push(statistics[col].countList == 0 ? 0 : statistics[col].countList.mean().toFixed(2));
-    median.push(statistics[col].countList == 0 ? 0 : statistics[col].countList.median().toFixed(2));
-    trend.push(statistics[col].countList == 0 ? 0 : linearRegression(statistics[col].yearList, statistics[col].countList).slope.toFixed(2));
+    mean.push(statistics[col].countList === 0 ? 0 : statistics[col].countList.mean().toFixed(2));
+    median.push(statistics[col].countList === 0 ? 0 : statistics[col].countList.median().toFixed(2));
+    trend.push(statistics[col].countList === 0 ? 0 : linearRegression(statistics[col].yearList, statistics[col].countList).slope.toFixed(2));
     bestYear.push(statistics[col].best.year > 0 ? statistics[col].best.year : '');
   }
 

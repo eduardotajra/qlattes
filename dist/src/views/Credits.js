@@ -11,7 +11,7 @@ const Credits = () => {
           <h1>Créditos</h1>
           <p>
             Concepção e implementação:
-            <a href="https://sites.google.com/site/nabormendonca/" target="_blank">Nabor Mendonça</a>
+            <a href="https://sites.google.com/site/nabormendonca/" target="_blank"  rel="noreferrer">Nabor Mendonça</a>
             (UNIFOR)
           </p>
           <p>Consultoria de conteúdo: Andréia Formico (UNIFOR)</p>

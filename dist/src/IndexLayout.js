@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, Route, Routes, Navigate } from "react-router-dom";
 import Sidebar from "components/Sidebar.js";
 
@@ -27,7 +27,8 @@ const IndexLayout = (props) => {
   const [groups, setGroups] = useState({});
   const [authorsNameLink, setAuthorsNameLink] = useState([]);
 
-  async function getInfos() {
+  // Envolvendo getInfos com useCallback para memoizá-la
+  const getInfos = useCallback(async () => {
     // Get Qualis Scores
     setAllQualisScores(await getAreasData());
     setGroups(await getGroups());
@@ -39,42 +40,42 @@ const IndexLayout = (props) => {
     getLattesData().then(async (authorList) => {
       if (authors.length === 0 && authorList.length !== 0) {
         setAuthors(authorList);
-        setAuthorsNameLink(Object.entries(authorList).map(author =>( {link: author[0],name: author[1].name})));
+        setAuthorsNameLink(Object.entries(authorList).map(author => ({ link: author[0], name: author[1].name })));
       }
     });
-  }
-  
+  }, [authors.length]);
+
   const updateGroups = async () => {
     setGroups(await getGroups());
-  }
-  
+  };
+
   const updateAuthors = async () => {
     setGroups(await getGroups());
     // Get Authors
     getLattesData().then(async (authorList) => {
       setAuthors(authorList);
-      setAuthorsNameLink(Object.entries(authorList).map(author =>( {link: author[0],name: author[1].name})));
+      setAuthorsNameLink(Object.entries(authorList).map(author => ({ link: author[0], name: author[1].name })));
     });
-  }
+  };
 
   const updateArea = async () => {
     setArea(await getArea());
-  }
+  };
 
   const routes = [
     {
       path: "/index",
-      component: <Index authors={authors} allQualisScores={allQualisScores} groups={groups} authorsNameLink={authorsNameLink} previousArea={area} updateArea={updateArea}/>,
+      component: <Index authors={authors} allQualisScores={allQualisScores} groups={groups} authorsNameLink={authorsNameLink} previousArea={area} updateArea={updateArea} />,
       layout: "/admin",
     },
     {
       path: "/cv-list",
-      component: <CVList authorsNameLink={authorsNameLink} allQualisScores={allQualisScores} updateAuthors={updateAuthors}/>,
+      component: <CVList authorsNameLink={authorsNameLink} allQualisScores={allQualisScores} updateAuthors={updateAuthors} />,
       layout: "/admin",
     },
     {
       path: "/group-list",
-      component: <GroupList authors={authors} groups={groups} updateGroups={updateGroups} authorsNameLink={authorsNameLink} allQualisScores={allQualisScores}/>,
+      component: <GroupList authors={authors} groups={groups} updateGroups={updateGroups} authorsNameLink={authorsNameLink} allQualisScores={allQualisScores} />,
       layout: "/admin",
     },
     {
@@ -100,8 +101,8 @@ const IndexLayout = (props) => {
   ];
 
   useEffect(() => {
-    getInfos()
-  }, []);
+    getInfos();
+  }, [getInfos]);
 
   return (
     <>
