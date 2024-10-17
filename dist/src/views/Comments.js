@@ -15,8 +15,6 @@ const Comments = () => {
             width="100%"
             height="535vh"
             frameborder="none"
-            marginHeight="0"
-            marginWidth="0"
           >
             Carregando…
           </iframe>

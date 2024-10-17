@@ -44,11 +44,12 @@ export function sortArrayByKeysReverse(arr, keys) {
 }
 
 // linear regression implementation based on code from https://github.com/heofs/trendline/
+// linear regression implementation
 export function linearRegression(xData, yData) {
   xData = xData.map(xItem => Number(xItem));
   // average of X values and Y values
-  const xMean = xData.mean();
-  const yMean = yData.mean();
+  const xMean = arrayMean(xData);
+  const yMean = arrayMean(yData);
 
   // Subtract X or Y mean from corresponding axis value
   const xMinusxMean = xData.map((val) => val - xMean);
@@ -61,10 +62,12 @@ export function linearRegression(xData, yData) {
     xy.push(xMinusxMean[x] * yMinusyMean[x]);
   }
 
-  const xySum = xy.sum();
+  // Usar reduce() para calcular a soma
+  const xySum = xy.reduce((acc, val) => acc + val, 0);
+  const xMinusxMeanSqSum = xMinusxMeanSq.reduce((acc, val) => acc + val, 0);
 
   // b1 is the slope
-  const b1 = xySum / xMinusxMeanSq.sum();
+  const b1 = xySum / xMinusxMeanSqSum;
   // b0 is the start of the slope on the Y axis
   const b0 = yMean - b1 * xMean;
 
@@ -74,6 +77,7 @@ export function linearRegression(xData, yData) {
     calcY: (x) => b0 + b1 * x,
   };
 }
+
 
 export const roundNumber = (number) => {
   return number.toString().indexOf('.') !== -1 ? number.toFixed(1) : number;
@@ -413,53 +417,70 @@ export function getQualisStats(pubInfo, metric = 'qualis', scores = {}) {
   // reset Qualis stats
   const qualisStats = {};
   for (const col of qualisCols) {
-    qualisStats[col] = [];
+    qualisStats[col] = [];  // Inicializa cada chave como array
   }
+  
   // reset year counts
   const yearCounts = {};
   for (const cat of qualisCats) {
     yearCounts[cat] = 0;
   }
-  var currYear = 0;
+  
+  let currYear = 0;
+  
   for (const pubInfoElem of Object.keys(pubInfo)) {
     if (currYear !== pubInfoElem) {
       if (currYear > 0) {
         // add current year counts to Qualis results
         for (const key of Object.keys(yearCounts)) {
-          qualisStats[key].push(yearCounts[key]);
+          // Verifica se qualisStats[key] existe, se não, inicializa
+          if (!qualisStats[key]) {
+            qualisStats[key] = [];
+          }
+          qualisStats[key].push(yearCounts[key]); // Agora garantido como array
         }
+
         // reset year counts
         for (const key of Object.keys(yearCounts)) {
           yearCounts[key] = 0;
         }
       }
+
       // update current year
       currYear = pubInfoElem;
+
       // add current year to Qualis counts
-      qualisStats.year.push(currYear);
+      if (!qualisStats['year']) {
+        qualisStats['year'] = [];
+      }
+      qualisStats['year'].push(currYear);
     }
+
     // increment year counts for each publication based on given metric
     for (const pubItem of pubInfo[pubInfoElem]) {
       if (metric === 'qualis') {
         yearCounts[pubItem.qualis] += 1;
       } else if (metric === 'score' && Object.keys(scores).length > 0) {
-        yearCounts[pubItem.qualis] += parseFloat(
-          getQualisScore(pubItem.qualis, 1, scores)
-        );
+        yearCounts[pubItem.qualis] += parseFloat(getQualisScore(pubItem.qualis, 1, scores));
       } else if (metric === 'jcr') {
         yearCounts[pubItem.qualis] += parseFloat(pubItem.jcr);
       }
     }
   }
-  if (qualisStats.year.length > qualisStats.A1.length) {
+
+  if (qualisStats['year'].length > qualisStats['A1'].length) {
     // add year counts to Qualis stats
     for (const key of Object.keys(yearCounts)) {
+      if (!qualisStats[key]) {
+        qualisStats[key] = [];
+      }
       qualisStats[key].push(yearCounts[key]);
     }
   }
 
   return qualisStats;
 }
+
 
 // get Qualis score for given category
 export function getQualisScore(qualisCategory, count, areaScores) {
@@ -497,7 +518,8 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
   if (showStatistics && end - init > 0) {
     totalStats.tot.yearList = totalStats.tot.yearList.map(year => Number(year));
     // create mean line annotation
-    const mean = totalStats.tot.countList.mean().toFixed(2);    
+    const mean = arrayMean(totalStats.tot.countList).toFixed(2);
+
     lineAnnotations.push({
       id: "mean",
       type: 'line',
@@ -521,7 +543,8 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
     });
     
     // create median line annotation
-    const median = totalStats.tot.countList.median().toFixed(2);
+    const median = arrayMedian(totalStats.tot.countList).toFixed(2);
+
     lineAnnotations.push({
       id: "median",
       type: 'line',
@@ -545,7 +568,7 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
     });
 
     // get max counts in totalStats
-    const maxCount = totalStats.tot.countList.max();
+    const maxCount = arrayMax(totalStats.tot.countList);
 
     // create trend line annotation
     const regression = linearRegression(

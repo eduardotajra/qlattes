@@ -123,22 +123,39 @@ const Index = ({
   }
 
   function handleCVsSelect(event, values) {
-    // get authors links
-    values = values.map(value => value.link ? value.link : value.authors)
-      .flat().filter((value, index, self) => self.indexOf(value) === index);
-
-    if (values.length === 0) {
+    // Mapeia os valores para links ou autores
+    const selectedLinks = values
+      .map(value => value.link ? value.link : value.authors)
+      .flat()
+      .filter((value, index, self) => self.indexOf(value) === index);
+  
+    if (selectedLinks.length === 0) {
       setShowAll(false);
       return;
     }
-
-    // get all cvs
-    const cvs = values.map(link => authors[link]);
+  
+    // Agora, use o array `selectedLinks` para encontrar os CVs correspondentes
+    const cvs = selectedLinks.map(link => authors[link]);
+  
+    // Verificação de segurança para garantir que `authors[link]` existe
+    cvs.forEach((cv, index) => {
+      if (!cv) {
+        console.error(`Autor não encontrado para o link: ${selectedLinks[index]}`);
+        return;
+      }
+  
+      // Certifique-se de que o cv.pubInfo existe
+      if (!cv.pubInfo) {
+        console.error(`Publicações não encontradas para o CV: ${selectedLinks[index]}`);
+        return;
+      }
+    });
+  
+    // Obtém todas as publicações dos CVs
     const pubInfos = cvs.map(cv => cv.pubInfo).flat();
-
-    // merge pubInfos
+  
+    // Merge pubInfos (mesclar todas as publicações por ano)
     const mergedPubInfos = {};
-
     for (const pubInfo of pubInfos) {
       for (const year in pubInfo) {
         if (mergedPubInfos[year]) {
@@ -148,43 +165,43 @@ const Index = ({
         }
       }
     }
-
-    // GET YEARS
+  
+    // Defina os anos iniciais e finais
     const years = Object.keys(mergedPubInfos);
-    const scores = areaData ? areaData.scores : {}
-
-    // GET STATS
+    const scores = areaData ? areaData.scores : {};
+  
+    // Inicializar estatísticas dos autores
     let authorStats = {
       stats: [],
       minYear: years[0],
-      maxYear: years[years.length-1],
+      maxYear: years[years.length - 1],
       totalPubs: NaN,
       pubInfo: [],
     };
-    // add missing years (if any) to author stats
+  
+    // Adiciona anos ausentes (se houver) às estatísticas do autor
     const pubInfoComplete = addMissingYearsToPubInfo(mergedPubInfos);
     authorStats = addMissingYearsToAuthorStats(getQualisStats(pubInfoComplete, 'qualis', scores), pubInfoComplete);
-
-    // get total journal publications
-    var totalPubs = 0;
+  
+    // Calcula o total de publicações em periódicos
+    let totalPubs = 0;
     for (const key of Object.keys(authorStats.stats)) {
       if (key !== 'year' && key !== 'jcr') {
-        totalPubs += authorStats.stats[key].reduce(
-          (partialSum, a) => partialSum + a,
-          0
-        );
+        totalPubs += authorStats.stats[key].reduce((partialSum, a) => partialSum + a, 0);
       }
     }
     authorStats.totalPubs = totalPubs;
-
+  
+    // Atualiza o estado com as informações obtidas
     setShowAll(true);
     setStats(authorStats.stats);
     setInitYearInput(years[0]);
-    setEndYearInput(years[years.length-1]);
+    setEndYearInput(years[years.length - 1]);
     setInitYear(years[0]);
-    setEndYear(years[years.length-1]);
+    setEndYear(years[years.length - 1]);
     setPubInfo(pubInfoComplete);
   }
+  
 
   if (previousArea?.area && !area) {
     setArea(previousArea.area);

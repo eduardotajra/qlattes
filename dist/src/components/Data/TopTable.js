@@ -43,8 +43,41 @@ const TopTable = ({
       }
     }
   }
+
+  // Função para ordenar um array de objetos por várias chaves de forma reversa
+  function sortByKeysReverse(arr, keys) {
+    const sortedArray = [...arr];
+    keys.reverse().forEach((key) => {
+      sortedArray.sort((a, b) => {
+        if (a[key] < b[key]) return 1;
+        if (a[key] > b[key]) return -1;
+        return 0;
+      });
+    });
+    return sortedArray;
+  }
+
+  // Função para ordenar um array de objetos por várias chaves (não reverso)
+  function sortByKeys(arr, keys) {
+    const sortedArray = [...arr];
+    keys.forEach((key) => {
+      sortedArray.sort((a, b) => {
+        if (a[key] < b[key]) return -1;
+        if (a[key] > b[key]) return 1;
+        return 0;
+      });
+    });
+    return sortedArray;
+  }
+
+
+  
   // return top N publications from sorted publication array sorted by Qualis classification
-  topPubs = topPubs.sortByKeysReverse(['year']).sortByKeys(['qualis']).slice(0, topN);
+  // Ordena as publicações por ano de forma reversa e depois por qualis
+  topPubs = sortByKeysReverse(topPubs, ['year']);
+  topPubs = sortByKeys(topPubs, ['qualis']);
+  topPubs = topPubs.slice(0, topN);
+
 
   return (
     <Row>

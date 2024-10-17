@@ -151,17 +151,35 @@ const DataTable = ({
   // Create footer from data arrays
   const footer = ["Total"].concat(Object.values(totalStats).map(number => roundNumber(number)));
 
+
+  // Função para calcular a média de um array
+  function mean1(arr) {
+    if (arr.length === 0) return 0;
+    return arr.reduce((acc, val) => acc + val, 0) / arr.length;
+  }
+  // Função para calcular a mediana de um array
+  function median1(arr) {
+    if (arr.length === 0) return 0;
+    const sortedArr = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sortedArr.length / 2);
+    
+    return sortedArr.length % 2 !== 0 ? sortedArr[mid] : (sortedArr[mid - 1] + sortedArr[mid]) / 2;
+  }
+
+
+
   // Get statistics
   const mean = ["Média"].concat(Object.keys(qualis).map(item => ""));
   const median = ["Mediana"].concat(Object.keys(qualis).map(item => ""));
   const trend = ["Tendência"].concat(Object.keys(qualis).map(item => ""));
   const bestYear = ["Melhor ano"].concat(Object.keys(qualis).map(item => ""));
   for (const col of Object.keys(statistics)) {
-    mean.push(statistics[col].countList === 0 ? 0 : statistics[col].countList.mean().toFixed(2));
-    median.push(statistics[col].countList === 0 ? 0 : statistics[col].countList.median().toFixed(2));
-    trend.push(statistics[col].countList === 0 ? 0 : linearRegression(statistics[col].yearList, statistics[col].countList).slope.toFixed(2));
+    mean.push(statistics[col].countList.length === 0 ? 0 : mean1(statistics[col].countList).toFixed(2));
+    median.push(statistics[col].countList.length === 0 ? 0 : statistics[col].countList.median1().toFixed(2));  // Você pode precisar implementar median também
+    trend.push(statistics[col].countList.length === 0 ? 0 : linearRegression(statistics[col].yearList, statistics[col].countList).slope.toFixed(2));
     bestYear.push(statistics[col].best.year > 0 ? statistics[col].best.year : '');
   }
+  
 
   // Set rows
   const rows = years.map((year, index) =>
