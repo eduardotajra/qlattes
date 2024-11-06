@@ -217,7 +217,7 @@ async function processLattesPage(
 
   // attempt to read Lattes data from local storage area
   const lattesData = await chrome.storage.local.get('lattes_data');
-  var lattesDataObject = [];
+  var lattesDataObject = {};
 
   // check whether Lattes data on local storage is not empty
   if (Object.keys(lattesData).length !== 0) {
