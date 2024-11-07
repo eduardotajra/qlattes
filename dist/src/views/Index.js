@@ -155,15 +155,18 @@ const Index = ({
     const pubInfos = cvs.map(cv => cv.pubInfo).flat();
   
     // Merge pubInfos (mesclar todas as publicações por ano)
-    const mergedPubInfos = [];
+    const mergedPubInfos = {};
     for (const pubInfo of pubInfos) {
       for (const year in pubInfo) {
+        console.log(`Ano ${year}:`, pubInfo[year]);
         if (!Array.isArray(mergedPubInfos[year])) {
           mergedPubInfos[year] = [];
         }
         mergedPubInfos[year] = mergedPubInfos[year].concat(pubInfo[year]);
       }      
     }
+    console.log('mergedPubInfos:', JSON.stringify(mergedPubInfos, null, 2));
+
   
     // Defina os anos iniciais e finais
     const years = Object.keys(mergedPubInfos);
