@@ -1,4 +1,4 @@
-// Wait for page elements to load
+// Wait for all images to load
 window.addEventListener('load', function () {
   // Execute content script
   (async () => await main())();
@@ -23,7 +23,7 @@ async function main() {
       pathList: ['data/qualis-capes-2017-2020.json'],
       label: 'Qualis/CAPES',
       url: 'https://sucupira.capes.gov.br/sucupira/public/consultas/coleta/veiculoPublicacaoQualis/listaConsultaGeralPeriodicos.jsf',
-      baseYear: 'quadriênio 2017-2020',
+      baseYear: '2020',
     },
     capes_alt: {
       pathList: ['data/qualis-capes-2017-2020-complemento.json'],
@@ -51,12 +51,11 @@ async function main() {
   const imagesURLs = {
     qlattesIconURL: chrome.runtime.getURL('images/icon-16.png'),
     qlattesLogoURL: chrome.runtime.getURL('images/qlattes-logo.png'),
-    // exclamationIconURL: chrome.runtime.getURL('images/exclamation-icon.png'),
     scopusIconURL: chrome.runtime.getURL('images/scopus-icon-16.png'),
     scholarIconURL: chrome.runtime.getURL('images/scholar-hat-icon-18.png'),
   };
 
-  const recentUpdatesURL = 'https://github.com/nabormendonca/qlattes/releases';
+  const recentUpdatesURL = 'https://github.com/nabormendonca/qlattes/releases/tag/v0.2.0';
 
   // attempt to get CV name and link from Lattes page
   const nameLink = getLattesNameAndLink();
@@ -64,7 +63,6 @@ async function main() {
   // check whether name and link were not found (if not this is not a CV Lattes!)
   if (!nameLink['name']) {
     console.log('No Lattes author name element found!');
-
     return;
   }
 
@@ -180,9 +178,6 @@ async function processLattesPage(
   console.log(qualisData);
 
   // // do not process Lattes page if already annotated
-  // const alertDiv = document.querySelector('#annotation-alert-div');
-  // if (alertDiv) return;
-
   // get visualization page URL
   const visualizationURL = chrome.runtime.getURL('index.html');
 
@@ -249,14 +244,6 @@ function annotateLattesPage(
     qualisDataCache,
     dataSourceInfo
   );
-  // qualisinfo = qualisInfo.concat(
-  //   annotateAcceptedArticles(
-  //     imagesURLs,
-  //     qualisData,
-  //     qualisDataCache,
-  //     dataSourceInfo
-  //   )
-  // );
   return qualisInfo;
 }
 
@@ -276,10 +263,9 @@ function annotatePublishedArticles(
 
   // find all published articles
   const pubElems = startElem.querySelectorAll("div[class='artigo-completo']");
-  // console.log('pubElems size:', pubElems.length);
 
   for (const pubElem of pubElems) {
-    console.log('pubElem:', pubElem);
+    //console.log(pubElem);
     const qualisPubInfo = {
       year: NaN,
       issn: '',
@@ -297,8 +283,7 @@ function annotatePublishedArticles(
     // skip current element if it has no year value
     if (isNaN(qualisPubInfo.year)) continue;
     // get publication data
-    // const pubElemData = pubElem.querySelector('div[cvuri]');
-    const pubElemData = pubElem.querySelector('span[cvuri]');
+    const pubElemData = pubElem.querySelector('div[cvuri]');
     if (pubElemData) {
       // get Journal info items
       const pubInfoString = escapeHtml(pubElemData.getAttribute('cvuri'))
@@ -307,8 +292,6 @@ function annotatePublishedArticles(
         .join('?')
         .replace(/<\/?monospace>/gi, '');
       const pubInfoItems = pubInfoString.split(/&(?=\w+)/);
-      console.log('pubInfoString:', pubInfoString);
-      console.log('pubInfoItems:', pubInfoItems);
       for (const pubInfoItem of pubInfoItems) {
         // get journal ISSN
         if (pubInfoItem.includes('issn=')) {
@@ -340,21 +323,21 @@ function annotatePublishedArticles(
       // add Qualis labels to Qualis info list
       qualisPubInfo.qualisLabels = qualisLabels;
       // get JCR data
-      // const jcrData = pubElem.querySelector('img[class="ajaxJCR jcrTip"]');
+      const jcrData = pubElem.querySelector('img[class="ajaxJCR jcrTip"]');
       // console.log('JCR data:', jcrData);
-      // if (jcrData) {
-      //   const jcrRegex = /JCR\s+(\d{4})\):\s+([\d.]+)/;
-      //   const match = jcrRegex.exec(jcrData.getAttribute('original-title'));
-      //   console.log('JCR match:', match);
-      //   if (match && match.length == 3) {
-      //     qualisPubInfo.jcrData = {
-      //       jcr: match[2],
-      //       baseYear: match[1],
-      //     };
-      //   } else {
-      //     console.log('No JCR match found');
-      //   }
-      // }
+      if (jcrData) {
+        const jcrRegex = /JCR\s+(\d{4})\):\s+([\d.]+)/;
+        const match = jcrRegex.exec(jcrData.getAttribute('original-title'));
+        // console.log('JCR match:', match);
+        if (match && match.length == 3) {
+          qualisPubInfo.jcrData = {
+            jcr: match[2],
+            baseYear: match[1],
+          };
+        } else {
+          console.log('No JCR match found');
+        }
+      }
 
       // inject Qualis info into Lattes page
       injectQualisAnnotation(
@@ -363,8 +346,6 @@ function annotatePublishedArticles(
         imagesURLs,
         dataSourceInfo
       );
-    } else {
-      console.log('No publication data found!');
     }
     // add journal info to JourInfoList
     qualisInfo.push(qualisPubInfo);
@@ -675,10 +656,6 @@ function injectQualisAnnotation(elem, pubInfo, imagesURLs, dataSourceInfo) {
             dataSourceInfo[pubInfo.qualisLabels.source].url
           )} (${dataSourceInfo[pubInfo.qualisLabels.source].baseYear})`;
     qualisAnnot += `, fonte ${dataSourceLabel}`;
-    // add JCR and base year (if available)
-    // if (Object.keys(pubInfo.jcrData).length > 0) {
-    //   qualisAnnot += `, JCR ${pubInfo.jcrData.jcr} (${pubInfo.jcrData.baseYear})`;
-    // }
   }
   // add icon with link to search for paper title in Google Scholar
   const baseUrl = 'https://scholar.google.com/scholar?q=';
@@ -702,13 +679,11 @@ function injectQualisAnnotation(elem, pubInfo, imagesURLs, dataSourceInfo) {
         pubInfo.qualisLabels.linkScopus
       )}`
     : '';
-  // insert annotation string into annotation element
+
   annotElem.insertAdjacentHTML('beforeend', qualisAnnot);
+
   // inject annotation element into Lattes page
   elem.insertAdjacentElement('afterend', annotElem);
-  // insert a new line break after annotation element
-  const lineBreak = document.createElement('br');
-  annotElem.insertAdjacentElement('afterend', lineBreak);
 }
 
 function injectAnnotationDiv(imagesURLs, visualizationURL) {
@@ -799,17 +774,14 @@ function createIconLinkHTML(iconUrl, iconStyle, tooltip, targetUrl) {
 }
 
 function consolidateQualisData(qualisInfo) {
-  var pubData = [];
+  var pubData = {};
   var pubDataYear = [];
   var currYear = 0;
   for (let i = 0; i < qualisInfo.length; i++) {
-    // console.log(currYear);
-    // console.log(currYearCounts);
-    // console.log(pubCounts);
     if (currYear !== qualisInfo[i].year) {
       if (currYear > 0) {
         // add current year publication list to pubInfoList
-        pubData.push({ year: currYear, pubList: pubDataYear });
+        pubData[currYear] = pubDataYear;
         // reset pubInfoYearList
         pubDataYear = [];
       }
@@ -836,113 +808,6 @@ function consolidateQualisData(qualisInfo) {
     // add pubInfo to pubInfoYearList
     pubDataYear.push(pubDataItem);
   }
-  if (qualisInfo.length > pubData.length) {
-    // add pubInfoYear to pubInfo
-    pubData.push({ year: currYear, pubList: pubDataYear });
-  }
+  if (currYear > 0) pubData[currYear] = pubDataYear;
   return pubData;
 }
-
-// function consolidateQualisResults(qualisInfo) {
-//   const pubCounts = {
-//     year: [],
-//     A1: [],
-//     A2: [],
-//     A3: [],
-//     A4: [],
-//     B1: [],
-//     B2: [],
-//     B3: [],
-//     B4: [],
-//     C: [],
-//     N: [],
-//     jcr: [],
-//   };
-
-//   const currYearCounts = {
-//     A1: 0,
-//     A2: 0,
-//     A3: 0,
-//     A4: 0,
-//     B1: 0,
-//     B2: 0,
-//     B3: 0,
-//     B4: 0,
-//     C: 0,
-//     N: 0,
-//     jcr: 0,
-//   };
-
-//   var pubInfoList = [];
-//   var pubInfoYearList = [];
-//   var currYear = 0;
-
-//   for (let i = 0; i < qualisInfo.length; i++) {
-//     // console.log(currYear);
-//     // console.log(currYearCounts);
-//     // console.log(pubCounts);
-
-//     if (currYear != qualisInfo[i].year) {
-//       if (currYear > 0) {
-//         // add current year counts to Qualis results
-//         for (const key of Object.keys(currYearCounts)) {
-//           pubCounts[key].push(currYearCounts[key]);
-//         }
-
-//         // add current year publication list to pubInfoList
-//         pubInfoList.push({ year: currYear, pubList: pubInfoYearList });
-
-//         // reset year counts
-//         for (const key of Object.keys(currYearCounts)) {
-//           currYearCounts[key] = 0;
-//         }
-
-//         // reset pubInfoYearList
-//         pubInfoYearList = [];
-//       }
-//       // update current year
-//       currYear = qualisInfo[i].year;
-
-//       // add current year to Qualis results
-//       pubCounts.year.push(currYear);
-//     }
-//     // increment year counts
-//     currYearCounts[qualisInfo[i].qualisLabels.qualis] += 1;
-//     currYearCounts.jcr +=
-//       Object.keys(qualisInfo[i].jcrData).length > 0
-//         ? parseFloat(qualisInfo[i].jcrData.jcr)
-//         : 0;
-
-//     // create pubInfo
-//     const pubInfo = {
-//       issn: qualisInfo[i].issn,
-//       title: qualisInfo[i].title,
-//       pubName: qualisInfo[i].pubName,
-//       qualis: qualisInfo[i].qualisLabels.qualis,
-//       // percentil: qualisInfo[i].qualisLabels.percentil,
-//       baseYear: qualisInfo[i].qualisLabels.baseYear,
-//       jcr:
-//         Object.keys(qualisInfo[i].jcrData).length > 0
-//           ? qualisInfo[i].jcrData.jcr
-//           : 0,
-//       jcrYear:
-//         Object.keys(qualisInfo[i].jcrData).length > 0
-//           ? qualisInfo[i].jcrData.baseYear
-//           : '',
-//     };
-
-//     // add pubInfo to pubInfoYearList
-//     pubInfoYearList.push(pubInfo);
-//   }
-
-//   if (pubCounts.year.length > pubCounts.A1.length) {
-//     // add year counts to Qualis results
-//     for (const key of Object.keys(currYearCounts)) {
-//       pubCounts[key].push(currYearCounts[key]);
-//     }
-//     // add pubInfoYearList to pubInfoList
-//     pubInfoList.push({ year: currYear, pubList: pubInfoYearList });
-//   }
-
-//   return { stats: pubCounts, pubInfo: pubInfoList };
-// }
