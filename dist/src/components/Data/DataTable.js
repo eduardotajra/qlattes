@@ -10,7 +10,9 @@ import {
 
 import {
   linearRegression,
-  roundNumber
+  roundNumber,
+  arrayMean,
+  arrayMedian
 } from "../../utils"
 
 import Table from '@mui/material/Table';
@@ -174,9 +176,13 @@ const DataTable = ({
   const trend = ["Tendência"].concat(Object.keys(qualis).map(item => ""));
   const bestYear = ["Melhor ano"].concat(Object.keys(qualis).map(item => ""));
   for (const col of Object.keys(statistics)) {
+    console.log(statistics[col])
     mean.push(statistics[col].countList.length === 0 ? 0 : mean1(statistics[col].countList).toFixed(2));
-    median.push(statistics[col].countList.length === 0 ? 0 : statistics[col].countList.median1().toFixed(2));  // Você pode precisar implementar median também
+    console.log(mean1(statistics[col].countList).toFixed(2))
+    median.push(statistics[col].countList.length === 0 ? 0 : median1(statistics[col].countList).toFixed(2));
+    console.log(median1(statistics[col].countList).toFixed(2))
     trend.push(statistics[col].countList.length === 0 ? 0 : linearRegression(statistics[col].yearList, statistics[col].countList).slope.toFixed(2));
+    console.log(linearRegression(statistics[col].yearList, statistics[col].countList).slope.toFixed(2))
     bestYear.push(statistics[col].best.year > 0 ? statistics[col].best.year : '');
   }
   

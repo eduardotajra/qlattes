@@ -283,7 +283,7 @@ function annotatePublishedArticles(
     // skip current element if it has no year value
     if (isNaN(qualisPubInfo.year)) continue;
     // get publication data
-    const pubElemData = pubElem.querySelector('div[cvuri]');
+    const pubElemData = pubElem.querySelector('span[cvuri]');
     if (pubElemData) {
       // get Journal info items
       const pubInfoString = escapeHtml(pubElemData.getAttribute('cvuri'))

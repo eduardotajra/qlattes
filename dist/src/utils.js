@@ -14,10 +14,12 @@ export function arraySum(arr) {
 }
 
 export function arrayMean(arr) {
-  return arr.reduce((a, b) => a + b, 0) / arr.length;
+  if (arr.length === 0) return 0;
+  return arr.reduce((acc, val) => acc + val, 0) / arr.length;
 }
 
 export function arrayMedian(arr) {
+  if (arr.length === 0) return 0;
   const mid = Math.floor(arr.length / 2);
   const sorted = arr.slice().sort((a, b) => a - b);
   return arr.length % 2 !== 0
@@ -519,6 +521,8 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
     totalStats.tot.yearList = totalStats.tot.yearList.map(year => Number(year));
     // create mean line annotation
     const mean = arrayMean(totalStats.tot.countList).toFixed(2);
+    console.log(totalStats.tot.countList)
+    console.log(mean)
 
     lineAnnotations.push({
       id: "mean",
@@ -544,6 +548,7 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
     
     // create median line annotation
     const median = arrayMedian(totalStats.tot.countList).toFixed(2);
+    console.log(median)
 
     lineAnnotations.push({
       id: "median",
@@ -617,6 +622,7 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
         display: true,
       }
     })
+    console.log(regression.slope)
   }
 
   return lineAnnotations;
