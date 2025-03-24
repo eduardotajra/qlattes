@@ -114,9 +114,9 @@ const CVItem = ({
       <div className="btn-icon-clipboard" style={{ flexDirection: 'row', display: 'flex', justifyContent: 'space-between' }}>
         <span>{authorName}</span>
         <div className="actions">
-          <i className="fas fa-external-link-alt mr-1" onClick={handleLinkButton} style={{fontSize: "14px"}} title="Ir para link externo"/>
+          <i className="fas fa-external-link-alt mr-1" onClick={handleLinkButton} style={{fontSize: "14px"}} title="Ir para a página do Lattes"/>
           {!group && <i className="fas fa-file-export mr-1" onClick={toggleModalAreaSelect} style={{fontSize: "14px"}} title="Exportar curriculo"/>}
-          <i className={group ? "fas fa-close" : "fas fa-trash-can"} onClick={handleRemoveButton} style={{fontSize: "14px"}} title={group? "Remover curriculo do grupo" : "Remover curriculo do banco"}/>
+          <i className={group ? "fas fa-trash-can" : "fas fa-trash-can"} onClick={handleRemoveButton} style={{fontSize: "14px"}} title={group? "Remover curriculo do grupo" : "Remover currículo do banco da extensão"}/>
         </div>
       </div>
       {/* Modal to select area */}

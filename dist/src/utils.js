@@ -1,4 +1,5 @@
 /*global chrome*/
+import pattern from 'patternomaly';
 
 /**
  * Mathematical util functions
@@ -48,7 +49,7 @@ export function sortArrayByKeysReverse(arr, keys) {
 // linear regression implementation based on code from https://github.com/heofs/trendline/
 // linear regression implementation
 export function linearRegression(xData, yData) {
-  xData = xData.map(xItem => Number(xItem));
+  xData = xData.map((xItem) => Number(xItem));
   // average of X values and Y values
   const xMean = arrayMean(xData);
   const yMean = arrayMean(yData);
@@ -80,10 +81,9 @@ export function linearRegression(xData, yData) {
   };
 }
 
-
 export const roundNumber = (number) => {
   return number.toString().indexOf('.') !== -1 ? number.toFixed(1) : number;
-}
+};
 
 /**
  * String manipulation functions
@@ -112,26 +112,27 @@ async function fetchJSON(url) {
   return json;
 }
 
-
 /**
  * Data functions - CRUD
  */
 
 export async function getLattesData() {
   const lattesData = await chrome.storage.local.get('lattes_data');
-  
+
   return lattesData['lattes_data'] || {};
 }
 
 export async function getAuthorData(author) {
   const lattesData = await getLattesData();
-  
+
   return lattesData[author];
 }
 
 export async function getAreasData() {
-  const areasData = await fetchJSON(chrome.runtime.getURL('data/qualis-scores-by-area-2017-2020.json'));
-  
+  const areasData = await fetchJSON(
+    chrome.runtime.getURL('data/qualis-scores-by-area-2017-2020.json')
+  );
+
   return areasData || [];
 }
 
@@ -143,7 +144,7 @@ export async function getGroups() {
 
 export async function getArea() {
   const areaData = await chrome.storage.local.get(['area_data']);
-  
+
   return areaData['area_data'] || {};
 }
 
@@ -151,10 +152,10 @@ export async function addNewGroup(groupName, authors) {
   const groupsData = await getGroups();
   const ids = Object.keys(groupsData);
 
-  const lastId = ids.length === 0 ? 0 : ids[Object.keys(groupsData).length-1];
-  groupsData[Number(lastId)+1] = {
+  const lastId = ids.length === 0 ? 0 : ids[Object.keys(groupsData).length - 1];
+  groupsData[Number(lastId) + 1] = {
     name: groupName,
-    authors: authors
+    authors: authors,
   };
 
   // Save it back
@@ -173,8 +174,8 @@ export async function deleteGroup(group) {
 export async function addCVinGroup(group, selectedAuthors) {
   const groupsData = await getGroups();
   const groupData = groupsData[group];
-  groupData.authors = groupData.authors.concat(selectedAuthors); 
-  
+  groupData.authors = groupData.authors.concat(selectedAuthors);
+
   await chrome.storage.local.set({ groupData: groupsData });
 }
 
@@ -182,8 +183,10 @@ export async function removeCVfromGroup(group, author) {
   const groupsData = await getGroups();
   const groupData = groupsData[group];
 
-  groupData.authors = groupData.authors.filter(currAuthor => currAuthor !== author);
-  
+  groupData.authors = groupData.authors.filter(
+    (currAuthor) => currAuthor !== author
+  );
+
   await chrome.storage.local.set({ groupData: groupsData });
 }
 
@@ -192,7 +195,7 @@ export async function removerCVfromDB(author) {
   const lattesData = await getLattesData();
   const groupsData = await getGroups();
 
-  // check if there is an 
+  // check if there is an
   if (Object.keys(lattesData).length === 0) {
     alert('Não achamos nenhum CV salvo.');
     return;
@@ -202,7 +205,7 @@ export async function removerCVfromDB(author) {
   delete lattesData[author];
 
   // remove author from all groups
-  Object.keys(groupsData).forEach(async(group) => {
+  Object.keys(groupsData).forEach(async (group) => {
     await removeCVfromGroup(group, author);
   });
 
@@ -219,32 +222,54 @@ export async function exportGroupCV(authors, areaData) {
   const lattesData = await getLattesData();
 
   const authorsData = Object.keys(lattesData)
-    .map(authorLink => authors.includes(authorLink) ? {link: authorLink, ...lattesData[authorLink]} : null)
-    .filter(author => author !== null);
+    .map((authorLink) =>
+      authors.includes(authorLink)
+        ? { link: authorLink, ...lattesData[authorLink] }
+        : null
+    )
+    .filter((author) => author !== null);
 
   let authorsName = [];
   let removedAuthors = [];
   authorsData.forEach((authorData) => {
     const pubInfo = authorData.pubInfo;
-    if ((Array.isArray(pubInfo) && pubInfo.length > 0) 
-      || (typeof pubInfo === 'object' && Object.entries(pubInfo).length > 0)) {
+    if (
+      (Array.isArray(pubInfo) && pubInfo.length > 0) ||
+      (typeof pubInfo === 'object' && Object.entries(pubInfo).length > 0)
+    ) {
       // get area label
-      
+
       authorsName.push(authorData.name);
     } else {
       removedAuthors.push(authorData.name);
     }
   });
 
-  const areaString = Object.keys(areaData).length !== 0
-  ? ` utilizando a pontuação da ${areaData.label}`
-  : '';
+  const areaString =
+    Object.keys(areaData).length !== 0
+      ? ` utilizando a pontuação da ${areaData.label}`
+      : '';
 
-  const authorsNameString = authorsName.map((authorName, index) => index === 0 ? authorName : index === authorsName.length-1 ? " e "+authorName : ", "+authorName);
-  const removedAuthorsString = removedAuthors.map((authorName, index) => index === 0 ? authorName : index === authorsName.length-1 ? " e "+authorName : ", "+authorName);
+  const authorsNameString = authorsName.map((authorName, index) =>
+    index === 0
+      ? authorName
+      : index === authorsName.length - 1
+      ? ' e ' + authorName
+      : ', ' + authorName
+  );
+  const removedAuthorsString = removedAuthors.map((authorName, index) =>
+    index === 0
+      ? authorName
+      : index === authorsName.length - 1
+      ? ' e ' + authorName
+      : ', ' + authorName
+  );
 
-  if (removedAuthors.length !== 0) 
-    alert('Estes CV não possuem dados de publicações em periódico: ' + removedAuthorsString);
+  if (removedAuthors.length !== 0)
+    alert(
+      'Estes CV não possuem dados de publicações em periódico: ' +
+        removedAuthorsString
+    );
 
   if (authorsName !== 0) {
     var result = window.confirm(
@@ -261,10 +286,13 @@ export async function exportCV(authorLink, areaData) {
   const authorData = await getAuthorData(authorLink);
   const pubInfo = authorData.pubInfo;
 
-  if ((Array.isArray(pubInfo) && pubInfo.length > 0) 
-    || (typeof pubInfo === 'object' && Object.entries(pubInfo).length > 0)) {
+  if (
+    (Array.isArray(pubInfo) && pubInfo.length > 0) ||
+    (typeof pubInfo === 'object' && Object.entries(pubInfo).length > 0)
+  ) {
     // get area label
-    const areaString = Object.keys(areaData).length !== 0
+    const areaString =
+      Object.keys(areaData).length !== 0
         ? ` utilizando a pontuação da ${areaData.label}`
         : '';
 
@@ -310,7 +338,7 @@ function convertLattesDataToCSV(authorsData, areaData) {
     areaLabel = areaData.label;
     areaScores = areaData.scores;
   }
-  
+
   const rows = [];
   authorsData.forEach((authorData) => {
     for (const pubInfoYear of Object.keys(authorData.pubInfo)) {
@@ -333,7 +361,7 @@ function convertLattesDataToCSV(authorsData, areaData) {
       }
     }
   });
-  
+
   const csvArray = [headers.join(','), ...rows.map((row) => row.join(','))];
   return csvArray.join('\n');
 }
@@ -342,7 +370,7 @@ function convertLattesDataToCSV(authorsData, areaData) {
  * Data functions
  */
 
-export function addMissingYearsToAuthorStats(stats, pubInfo) {
+export function addMissingYearsToAuthorStats(stats, pubInfo, startYear) {
   const newStats = {};
   // reset new stats count lists
   for (const key of Object.keys(stats)) {
@@ -351,16 +379,14 @@ export function addMissingYearsToAuthorStats(stats, pubInfo) {
 
   const newPubInfo = {};
   const lastYear = new Date().getFullYear();
-  const firstYear = Object.keys(pubInfo)[0];
+  const firstYear = startYear || Object.keys(pubInfo)[0];
   for (let year = lastYear; year >= firstYear; year--) {
     // add empty counts to missing year stats
-    
-    if (Object.keys(pubInfo).includes(year)) {
+    if (Object.keys(pubInfo).includes(year.toString())) {
       newPubInfo[year] = pubInfo[year];
     } else {
       newPubInfo[year] = [];
     }
-      
   }
 
   let currYear = new Date().getFullYear() + 1;
@@ -395,11 +421,10 @@ export function addMissingYearsToAuthorStats(stats, pubInfo) {
   };
 }
 
-
-export function addMissingYearsToPubInfo(pubInfo) {
+export function addMissingYearsToPubInfo(pubInfo, startYear) {
   const newPubInfo = {};
   const lastYear = new Date().getFullYear();
-  const firstYear = Object.keys(pubInfo)[0];
+  const firstYear = startYear || Object.keys(pubInfo)[0];
   for (let year = lastYear; year >= firstYear; year--) {
     // add empty counts to missing year stats
     if (Object.keys(pubInfo).includes(year.toString())) {
@@ -415,21 +440,21 @@ export function addMissingYearsToPubInfo(pubInfo) {
 export function getQualisStats(pubInfo, metric = 'qualis', scores = {}) {
   const qualisCats = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4', 'C', 'N'];
   const qualisCols = ['year'].concat(qualisCats);
-  
+
   // reset Qualis stats
   const qualisStats = {};
   for (const col of qualisCols) {
-    qualisStats[col] = [];  // Inicializa cada chave como array
+    qualisStats[col] = []; // Inicializa cada chave como array
   }
-  
+
   // reset year counts
   const yearCounts = {};
   for (const cat of qualisCats) {
     yearCounts[cat] = 0;
   }
-  
+
   let currYear = 0;
-  
+
   for (const pubInfoElem of Object.keys(pubInfo)) {
     if (currYear !== pubInfoElem) {
       if (currYear > 0) {
@@ -463,7 +488,9 @@ export function getQualisStats(pubInfo, metric = 'qualis', scores = {}) {
       if (metric === 'qualis') {
         yearCounts[pubItem.qualis] += 1;
       } else if (metric === 'score' && Object.keys(scores).length > 0) {
-        yearCounts[pubItem.qualis] += parseFloat(getQualisScore(pubItem.qualis, 1, scores));
+        yearCounts[pubItem.qualis] += parseFloat(
+          getQualisScore(pubItem.qualis, 1, scores)
+        );
       } else if (metric === 'jcr') {
         yearCounts[pubItem.qualis] += parseFloat(pubItem.jcr);
       }
@@ -483,12 +510,10 @@ export function getQualisStats(pubInfo, metric = 'qualis', scores = {}) {
   return qualisStats;
 }
 
-
 // get Qualis score for given category
 export function getQualisScore(qualisCategory, count, areaScores) {
   return areaScores[qualisCategory] * count;
 }
-
 
 /**
  * Graph functions
@@ -514,23 +539,30 @@ export function getBoundedTrendPoint(regression, x, xList, yBound) {
   return { x: newXIndex, y: y };
 }
 
-export function getStatisticsAnnotations(totalStats, showStatistics, end, init) {
+export function getStatisticsAnnotations(
+  totalStats,
+  showStatistics,
+  end,
+  init
+) {
   const lineAnnotations = [];
 
   if (showStatistics && end - init > 0) {
-    totalStats.tot.yearList = totalStats.tot.yearList.map(year => Number(year));
+    totalStats.tot.yearList = totalStats.tot.yearList.map((year) =>
+      Number(year)
+    );
     // create mean line annotation
     const mean = arrayMean(totalStats.tot.countList).toFixed(2);
-    console.log(totalStats.tot.countList)
-    console.log(mean)
+    console.log(totalStats.tot.countList);
+    console.log(mean);
 
     lineAnnotations.push({
-      id: "mean",
+      id: 'mean',
       type: 'line',
       mode: 'horizontal',
       borderColor: '#2c4c8c',
       value: mean,
-      scaleID: "y",
+      scaleID: 'y',
       borderWidth: 1,
       borderDash: [6, 6],
       label: {
@@ -543,20 +575,20 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
         },
         z: 10,
         display: true,
-      }
+      },
     });
-    
+
     // create median line annotation
     const median = arrayMedian(totalStats.tot.countList).toFixed(2);
-    console.log(median)
+    console.log(median);
 
     lineAnnotations.push({
-      id: "median",
+      id: 'median',
       type: 'line',
       mode: 'horizontal',
       borderColor: '#2c4c8c',
       value: median,
-      scaleID: "y",
+      scaleID: 'y',
       borderWidth: 1,
       borderDash: [4, 4],
       label: {
@@ -569,7 +601,7 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
         },
         z: 10,
         display: true,
-      }
+      },
     });
 
     // get max counts in totalStats
@@ -599,7 +631,7 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
       }
     );
     lineAnnotations.push({
-      id: "trend",
+      id: 'trend',
       type: 'line',
       borderColor: '#2c4c8c',
       xMin: minPoint.x,
@@ -620,31 +652,208 @@ export function getStatisticsAnnotations(totalStats, showStatistics, end, init) 
         },
         z: 10,
         display: true,
-      }
-    })
-    console.log(regression.slope)
+      },
+    });
+    console.log(regression.slope);
   }
 
   return lineAnnotations;
 }
 
-export function getGraphicInfo(datasets, years, totalStats, showStatistics, end, init) {  
-  const lineAnnotations = getStatisticsAnnotations(totalStats, showStatistics, end, init);
+export function getBarChatInfo(
+  dataCounts,
+  years,
+  totalStats,
+  showStatistics,
+  end,
+  init,
+  xTitle,
+  yTitle,
+  areaData,
+  isUnifiedChart = false
+) {
+  // Show the data in a stacked bar chart
+  const baseColorPalette = [
+    'rgb(54, 162, 235)', // blue
+    'rgb(255, 99, 132)', // red
+    'rgb(75, 192, 192)', // green
+    'rgb(255, 205, 86)', // yellow
+    'rgb(153, 102, 255)', // purple
+    'rgb(255, 159, 64)', // orange
+    'rgb(201, 203, 207)', // gray
+    // 'rgba(245, 245, 245, 1)', // light gray
+    // 'rgba(77, 201, 246, 1)', // light blue
+    // 'rgba(246, 112, 25, 1)', // orange
+    // 'rgba(245, 55, 148, 1)', // pink
+    // 'rgba(83, 123, 196, 1)', // medium blue
+    // 'rgba(172, 194, 54, 1)', // greenish
+    // 'rgba(22, 106, 143, 1)', // teal
+    // 'rgba(0, 169, 80, 1)', // green
+    // 'rgba(88, 89, 91, 1)', // dark gray
+    // 'rgba(133, 73, 186, 1)', // purple
+  ];
+
+  const fillPatterns = [
+    'none',
+    'diagonal',
+    'dot',
+    'weave',
+    'zigzag',
+    'cross',
+    'diamond',
+    'line',
+  ];
+
+  // Define lighten color maps:
+  // If only A, B:
+  const labelLightenMapScores = {
+    A: 0.0,
+    B: 0.3,
+  };
+
+  // If A, B, C, N:
+  const labelLightenMapNoScores = {
+    A: 0.0,
+    B: 0.3,
+    C: 0.55,
+    N: 0.8,
+  };
+
+  console.log('dataCounts:', dataCounts);
+
+  let datasets = [];
+  const dataKeys = Object.keys(dataCounts);
+
+  dataKeys.forEach((name, index) => {
+    // Choose the base color and fill pattern for this stack
+    const baseColor = baseColorPalette[index % baseColorPalette.length];
+
+    const fillPattern =
+      fillPatterns[
+        Math.floor(index / baseColorPalette.length) % fillPatterns.length
+      ];
+
+    const stackName = name === '__all' ? 'Todos os CVs' : name;
+
+    // Decide which alpha map to use (depends on 'scores' or not)
+    const labelLightenMap =
+      areaData && areaData.scores
+        ? labelLightenMapScores
+        : labelLightenMapNoScores;
+
+    // If 'scores' is true, we have A & B; otherwise A, B, C, N
+    const labelsForThisStack = Object.keys(labelLightenMap);
+
+    const filteredLabels = labelsForThisStack.filter((label) => {
+      return Object.keys(dataCounts[name]).includes(label);
+    });
+
+    filteredLabels.forEach((label) => {
+      const lightenLevel = labelLightenMap[label];
+
+      // Overwrite the alpha channel of the base color
+      const lightenedColor = lightenColorRGB(baseColor, lightenLevel);
+
+      // Define the color for this label with possible fill pattern
+      let labelColor;
+      if (fillPattern === 'none') {
+        labelColor = lightenedColor;
+      } else {
+        labelColor = pattern.draw(fillPattern, lightenedColor, '#fff');
+      }
+
+      datasets.push({
+        label: label,
+        data: Object.values(dataCounts[name][label]),
+        backgroundColor: labelColor,
+        stack: stackName,
+        barThickness: 'flex',
+        // maxBarThickness: 15,
+        categoryPercentage: 0.75, // space taken by each bar group out of the category width
+        barPercentage: 1.0, // space taken by each bar within its group
+        // clip: false, // prevents bars from being clipped at the chart border
+      });
+    });
+  });
+
+  console.log('final datasets:', datasets);
+
+  let legendItems = [];
+  dataKeys.forEach((name, index) => {
+    // Choose the base color and fill pattern for this legend item
+    const baseColor = baseColorPalette[index % baseColorPalette.length];
+
+    const fillPattern =
+      fillPatterns[
+        Math.floor(index / baseColorPalette.length) % fillPatterns.length
+      ];
+
+    // Define the color for this legend with possible fill pattern
+    let legendColor;
+    if (fillPattern === 'none') {
+      legendColor = baseColor;
+    } else {
+      legendColor = pattern.draw(fillPattern, baseColor, '#fff');
+    }
+
+    if (name !== '__all') {
+      legendItems.push({
+        text: abbreviatePortugueseName(name),
+        fillStyle: legendColor,
+        strokeStyle: 'transparent', // no visible border
+        lineWidth: 0, // remove outline
+        hidden: false,
+      });
+    }
+  });
+
+  const lineAnnotations = getStatisticsAnnotations(
+    totalStats,
+    showStatistics,
+    end,
+    init
+  );
   const options = {
     plugins: {
       annotation: {
-        annotations: lineAnnotations
+        annotations: lineAnnotations,
       },
       legend: {
-        position: 'top',
+        // position: 'top',
+        position: 'bottom',
+        labels: {
+          generateLabels: function () {
+            return legendItems;
+          },
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (tooltipItem) {
+            return `${tooltipItem.dataset.label}: ${tooltipItem.raw}`;
+          },
+          title: function (tooltipItems) {
+            return `${tooltipItems[0].dataset.stack}`;
+          },
+        },
       },
     },
     responsive: true,
+    // maintainAspectRatio: false,
+    interaction: {
+      mode: 'x',
+      intersect: false,
+    },
     scales: {
       x: {
         stacked: true,
         grid: {
           display: false,
+        },
+        offset: true,
+        title: {
+          display: true,
+          text: xTitle,
         },
       },
       y: {
@@ -652,19 +861,207 @@ export function getGraphicInfo(datasets, years, totalStats, showStatistics, end,
         grid: {
           display: false,
         },
+        type: 'linear',
+        ticks: {
+          precision: 0,
+          // stepSize: 1,
+          // callback: function (value) {
+          //   return Math.round(value);
+          // },
+        },
+        title: {
+          display: true,
+          text: yTitle,
+        },
       },
     },
+    // elements: {
+    //   bar: {
+    //     borderWidth: 0,
+    // },
     borderWidth: 1,
-    minBarThickness: 5,
-    maxBarThickness: 12,
-  };
-  
-  const data = {
-    labels: years.filter(year => year >= init && year <= end).map(year => year.toString()),
-    datasets
+    maxBarThickness: 50,
   };
 
-  return { options, data }
+  const data = {
+    labels: isUnifiedChart
+      ? [`${init} - ${end}`]
+      : years
+          .filter((year) => year >= init && year <= end)
+          .map((year) => year.toString()),
+    datasets,
+  };
+
+  return { options, data };
+}
+
+export function getParetoChartInfo(dataCounts, xTitle, yTitle) {
+  // Prepare data counts for a pareto chart
+  const dataArray = [];
+
+  // Transform unified data counts into an array of the format [{name: 'john', value: 5}, ...]
+  const dataKeys = Object.keys(dataCounts);
+
+  dataKeys.forEach((name) => {
+    let dataCounter = 0;
+    Object.keys(dataCounts[name]).forEach((label) => {
+      dataCounter += dataCounts[name][label].allyears;
+    });
+    dataArray.push({
+      name: name,
+      value: dataCounter,
+    });
+  });
+
+  // Sort data array descending by value
+  dataArray.sort((a, b) => b.value - a.value);
+
+  console.log('dataArray:', dataArray);
+
+  // Compute the total sum of all values
+  const total = dataArray.reduce((acc, item) => acc + item.value, 0);
+
+  console.log('total sum:', total);
+
+  // Build dataset for the chart
+  const labels = [];
+  const cumulativePercents = [];
+
+  let runningSum = 0;
+  dataArray.forEach((item, index) => {
+    labels.push(abbreviatePortugueseName(item.name));
+    // labels.push(`Autor ${index + 1}`);
+    runningSum += item.value;
+    const percent = (runningSum / total) * 100;
+    // Round if desired (e.g., one decimal place)
+    cumulativePercents.push(parseFloat(percent.toFixed(1)));
+  });
+
+  console.log('labels:', labels, 'cumulativePercents:', cumulativePercents);
+
+  // Determine the 25th / 50th percentile positions
+  const n = dataArray.length;
+  const p25Index = Math.floor(n * 0.25) > 0 ? Math.floor(n * 0.25) - 1 : 0;
+  const p50Index = Math.floor(n * 0.5) > 0 ? Math.floor(n * 0.5) - 1 : 0;
+
+  // Get the cumulative % values just BEFORE those lines
+  const p25YValue = cumulativePercents[p25Index];
+  const p50YValue = cumulativePercents[p50Index];
+
+  // Define chart config options
+  const options = {
+    plugins: {
+      annotation: {
+        annotations: {
+          percentile25: {
+            type: 'line',
+            xMin: p25Index, // same as xMax if you want a single vertical line
+            xMax: p25Index,
+            borderColor: 'darkgray',
+            borderWidth: 2,
+            borderDash: [6, 6], // dashed line
+            clip: false,
+            label: {
+              display: true,
+              content: `P25 (${p25YValue.toFixed(1)}% da produção)`,
+              position: 'end',
+              yAdjust: -10,
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              color: 'darkgray',
+            },
+          },
+          percentile50: {
+            type: 'line',
+            xMin: p50Index,
+            xMax: p50Index,
+            borderColor: 'darkgray',
+            borderWidth: 2,
+            borderDash: [6, 6],
+            clip: false,
+            label: {
+              display: true,
+              content: `P50 (${p50YValue.toFixed(1)}% da produção)`,
+              position: 'end',
+              yAdjust: -10,
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              color: 'darkgray',
+            },
+          },
+        },
+      },
+      legend: {
+        display: false,
+      },
+    },
+    type: 'line',
+    responsive: true,
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: xTitle,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: yTitle,
+        },
+      },
+    },
+  };
+
+  // Define chart data
+  const data = {
+    labels: labels,
+    datasets: [
+      {
+        // label: 'Percentual acumulado',
+        label: '',
+        data: cumulativePercents, //
+        backgroundColor: 'rgb(75, 192, 192)',
+      },
+    ],
+  };
+
+  return { options, data };
+}
+
+// Helper function to Update the alpha channel of an RGBA color string
+// function setColorAlpha(rgbaStr, newAlpha) {
+//   // Regex to capture the R, G, B, and A parts:
+//   const match = rgbaStr.match(
+//     /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,?\s*(\d*\.?\d*)?\)/i
+//   );
+//   if (!match) {
+//     // If it doesn't match, just return the original or throw an error
+//     return rgbaStr;
+//   }
+
+//   // Extract existing R, G, B (we're ignoring the original alpha, if any)
+//   const r = match[1];
+//   const g = match[2];
+//   const b = match[3];
+
+//   // newAlpha should be a float between 0 and 1
+//   return `rgba(${r}, ${g}, ${b}, ${newAlpha})`;
+// }
+
+// Helper function to lighten an RGB color string:
+function lightenColorRGB(rgbStr, lightenFactor) {
+  const match = rgbStr.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
+  if (!match) return rgbStr; // fallback
+
+  let r = parseInt(match[1], 10);
+  let g = parseInt(match[2], 10);
+  let b = parseInt(match[3], 10);
+
+  r = Math.round(r + (255 - r) * lightenFactor);
+  g = Math.round(g + (255 - g) * lightenFactor);
+  b = Math.round(b + (255 - b) * lightenFactor);
+
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 /**
@@ -685,4 +1082,141 @@ export function updateTotalStats(totalStats, yearCounts, year) {
     }
   }
   return totalStats;
+}
+
+// unify stats years
+export function unifyStatsYears(inputStats) {
+  const outputStats = {};
+
+  // For each 'name' in the input
+  for (const nameKey in inputStats) {
+    // The original object for this 'name'
+    const originalObj = inputStats[nameKey];
+
+    // We'll build a new object with the same structure but unified years
+    const newObj = {};
+
+    for (const catKey in originalObj) {
+      if (catKey === 'year') {
+        // Replace the array of years with a single entry
+        newObj[catKey] = ['allyears'];
+      } else {
+        // Sum up all values in the array
+        const sum = originalObj[catKey].reduce((acc, val) => acc + val, 0);
+        // Store that single sum in an array
+        newObj[catKey] = [sum];
+      }
+    }
+
+    outputStats[nameKey] = newObj;
+  }
+
+  return outputStats;
+}
+
+// unify stats years
+export function unifyDataCounts(inputDataCounts) {
+  const outputDataCounts = {};
+
+  // For each 'name' in the input
+  for (const nameKey in inputDataCounts) {
+    // The original object for this 'name'
+    const originalObj = inputDataCounts[nameKey];
+
+    // We'll build a new object with the same structure but unified years
+    const newObj = {};
+
+    for (const catKey in originalObj) {
+      newObj[catKey] = {};
+      // Sum up all year values fro category
+      newObj[catKey]['allyears'] = 0;
+      for (const year in originalObj[catKey]) {
+        newObj[catKey]['allyears'] += originalObj[catKey][year];
+      }
+    }
+
+    outputDataCounts[nameKey] = newObj;
+  }
+
+  return outputDataCounts;
+}
+
+// unify stats years
+export function filterDataCounts(inputDataCounts, catFilters) {
+  const outputDataCounts = {};
+
+  // For each 'name' in the input
+  for (const nameKey in inputDataCounts) {
+    // The original object for this 'name'
+    const originalObj = inputDataCounts[nameKey];
+
+    // We'll build a new object with the same structure but with filtered categories
+    const newObj = {};
+
+    for (const catKey in originalObj) {
+      if (catFilters.includes(catKey)) {
+        newObj[catKey] = originalObj[catKey];
+      }
+    }
+
+    outputDataCounts[nameKey] = newObj;
+  }
+
+  return outputDataCounts;
+}
+
+function abbreviatePortugueseName(fullName) {
+  // Common bridging words in Portuguese
+  const BRIDGING_WORDS = new Set(['de', 'do', 'da', 'das', 'dos', 'e']);
+
+  // Suffix surnames that should remain attached to the main family name
+  // (case-insensitive match)
+  const SUFFIX_SURNAMES = new Set([
+    'filho',
+    'filha',
+    'neto',
+    'neta',
+    'bisneto',
+    'bisneta',
+    'sobrinho',
+    'sobrinha',
+    'júnior',
+    'junior',
+    'jr',
+  ]);
+
+  // 1. Split the name into parts
+  let parts = fullName.trim().split(/\s+/).filter(Boolean);
+
+  // If there's only one name, just return it as is
+  if (parts.length <= 1) {
+    return parts.join(' ');
+  }
+
+  // 2. Identify if there are suffix surnames at the end
+  //    We gather all consecutive suffixes from the right.
+  const suffixParts = [];
+  while (
+    parts.length > 1 && // need at least 2 parts to have a "main surname + suffix"
+    SUFFIX_SURNAMES.has(parts[parts.length - 1].toLowerCase())
+  ) {
+    suffixParts.unshift(parts.pop());
+  }
+
+  // 3. Now the last token left is the main surname
+  const mainLastName = parts.pop();
+  const finalLastName = [mainLastName, ...suffixParts].join(' ');
+
+  // 4. Everything else (the "middle" portion + first name) are in 'parts'
+  //    Filter out bridging words and abbreviate them.
+  //    The first name is also turned into an initial.
+  //    (If you want to keep the first name intact, just skip it in the loop.)
+  const abbreviated = parts
+    .map((word) => word.toLowerCase())
+    .filter((word) => !BRIDGING_WORDS.has(word)) // remove bridging words
+    .map((word) => (word[0] || '').toUpperCase() + '.'); // convert to initial with "."
+
+  // 5. Join the abbreviated parts + final last name
+  //    e.g. ["J.", "M."] + "Mendonça Filho" => "J. M. Mendonça Filho"
+  return [...abbreviated, finalLastName].join(' ');
 }

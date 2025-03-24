@@ -67,9 +67,15 @@ const GroupItem = ({
     exportGroupCV(authors.map(author => author.link), areaData);
   }
 
-  const handleGroupDelete = async () => {
-    await deleteGroup(groupId);
-    updateGroups();
+  const handleGroupDelete = async (e) => {
+    let result;
+    result = window.confirm(`Confirma a remoção do grupo ${groupName}?\n\nUma vez confirmada, o grupo será removido, mas os currículos permanecerão no banco de dados do sistema.`)
+    if(result) {
+      await deleteGroup(groupId);
+      updateGroups();
+    }else {
+      e.preventDefault();
+    }
   }
 
   function handleAreaChange(event) {
@@ -120,7 +126,7 @@ const GroupItem = ({
         <h3 className="mb-0">{groupName}</h3>
         <div>
           <i className="fas fa-file-export mr-2" onClick={toggleModalAreaSelect} style={{fontSize: "14px", cursor: "pointer"}} title="Exportar dados dos CVs do grupo"/>
-          <i className="fas fa-trash-can mr-2" onClick={handleGroupDelete} style={{fontSize: "14px", cursor: "pointer"}} title="Deletar grupo"/>
+          <i className="fas fa-trash-can mr-2" onClick={handleGroupDelete} style={{fontSize: "14px", cursor: "pointer"}} title="Remover grupo"/>
           <i className="fas fa-plus" style={{cursor: "pointer"}} onClick={toggle} title="Adicionar um CV ao grupo"/>
         </div>
       </CardHeader>

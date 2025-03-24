@@ -40,7 +40,9 @@ const IndexLayout = (props) => {
     getLattesData().then(async (authorList) => {
       if (authors.length === 0 && authorList.length !== 0) {
         setAuthors(authorList);
-        setAuthorsNameLink(Object.entries(authorList).map(author => ({ link: author[0], name: author[1].name })));
+        setAuthorsNameLink(
+          Object.entries(authorList).map(author => ({ link: author[0], name: author[1].name }))
+        );
       }
     });
   }, [authors.length]);
