@@ -69,7 +69,7 @@ const GroupItem = ({
 
   const handleGroupDelete = async (e) => {
     let result;
-    result = window.confirm(`Confirma a remoção do grupo ${groupName}?\n\nUma vez confirmada, o grupo será removido, mas os currículos permanecerão no banco de dados do sistema.`)
+    result = window.confirm(`Confirma a remoção do grupo ${groupName}?\n\nUma vez confirmada, o grupo será removido, mas os dados dos currículos permanecerão disponíveis.`)
     if(result) {
       await deleteGroup(groupId);
       updateGroups();

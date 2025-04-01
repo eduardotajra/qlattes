@@ -20,7 +20,14 @@ const CVList = ({
   allQualisScores,
   updateAuthors
 }) => {
-  const [filteredAuthors, setFilteredAuthors] = useState(authorsNameLink);
+  const [filteredAuthors, setFilteredAuthors] = useState([]);
+
+  React.useEffect(() => {
+    if (authorsNameLink && authorsNameLink.length > 0) {
+      setFilteredAuthors(authorsNameLink);
+    }
+  }, [authorsNameLink]);
+  
   const searchAuthor = (event, values) => {
     if (!values)
       setFilteredAuthors(authorsNameLink);

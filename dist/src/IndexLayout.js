@@ -1,8 +1,9 @@
+/*global chrome*/
 import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, Route, Routes, Navigate } from "react-router-dom";
 import Sidebar from "components/Sidebar.js";
 
-import { getAreasData, getLattesData, getGroups, getArea } from './utils';
+import { getAreasData, getLattesData, getGroups, getArea } from "./utils";
 import Index from "views/Index.js";
 import GroupList from "views/GroupList.js";
 import CVList from "views/CVList.js";
@@ -26,80 +27,102 @@ const IndexLayout = (props) => {
   const [authors, setAuthors] = useState([]);
   const [groups, setGroups] = useState({});
   const [authorsNameLink, setAuthorsNameLink] = useState([]);
+  const [refresh, setRefresh] = useState(0); // Contador para forçar atualização
 
-  // Envolvendo getInfos com useCallback para memoizá-la
+  // Função para buscar informações iniciais
   const getInfos = useCallback(async () => {
-    // Get Qualis Scores
     setAllQualisScores(await getAreasData());
     setGroups(await getGroups());
-
-    // Update area data (if previously saved in local store)
     setArea(await getArea());
-
-    // Get Authors
-    getLattesData().then(async (authorList) => {
-      if (authors.length === 0 && authorList.length !== 0) {
-        setAuthors(authorList);
-        setAuthorsNameLink(
-          Object.entries(authorList).map(author => ({ link: author[0], name: author[1].name }))
-        );
-      }
-    });
-  }, [authors.length]);
+    const authorList = await getLattesData();
+    setAuthors(authorList);
+    setAuthorsNameLink(
+      Object.entries(authorList).map(([link, author]) => ({
+        link,
+        name: author.name,
+      }))
+    );
+  }, []);
 
   const updateGroups = async () => {
     setGroups(await getGroups());
   };
 
   const updateAuthors = async () => {
-    setGroups(await getGroups());
-    // Get Authors
-    getLattesData().then(async (authorList) => {
-      setAuthors(authorList);
-      setAuthorsNameLink(Object.entries(authorList).map(author => ({ link: author[0], name: author[1].name })));
-    });
+    const authorList = await getLattesData();
+    setAuthors(authorList);
+    setAuthorsNameLink(
+      Object.entries(authorList).map(([link, author]) => ({
+        link,
+        name: author.name,
+      }))
+    );
+    setRefresh((prev) => prev + 1); // Incrementa o contador para forçar reavaliação
   };
 
   const updateArea = async () => {
     setArea(await getArea());
   };
 
+  // Listener para atualizar os autores quando o chrome.storage for alterado
+  useEffect(() => {
+    const storageListener = (changes, namespace) => {
+      if (namespace === "local" && changes.authorsNameLink) {
+        updateAuthors();
+      }
+    };
+
+    chrome.storage.onChanged.addListener(storageListener);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(storageListener);
+    };
+  }, [updateAuthors]);
+
   const routes = [
     {
       path: "/index",
-      component: <Index authors={authors} allQualisScores={allQualisScores} groups={groups} authorsNameLink={authorsNameLink} previousArea={area} updateArea={updateArea} />,
+      component: (
+        <Index
+          authors={authors}
+          allQualisScores={allQualisScores}
+          groups={groups}
+          authorsNameLink={authorsNameLink}
+          previousArea={area}
+          updateArea={updateArea}
+          refresh={refresh} // Passa o contador (opcional, se desejar usar no filho)
+        />
+      ),
       layout: "/admin",
     },
     {
       path: "/cv-list",
-      component: <CVList authorsNameLink={authorsNameLink} allQualisScores={allQualisScores} updateAuthors={updateAuthors} />,
+      component: (
+        <CVList
+          authorsNameLink={authorsNameLink}
+          allQualisScores={allQualisScores}
+          updateAuthors={updateAuthors}
+        />
+      ),
       layout: "/admin",
     },
     {
       path: "/group-list",
-      component: <GroupList authors={authors} groups={groups} updateGroups={updateGroups} authorsNameLink={authorsNameLink} allQualisScores={allQualisScores} />,
+      component: (
+        <GroupList
+          authors={authors}
+          groups={groups}
+          updateGroups={updateGroups}
+          authorsNameLink={authorsNameLink}
+          allQualisScores={allQualisScores}
+        />
+      ),
       layout: "/admin",
     },
-    {
-      path: "/questions",
-      component: <Questions />,
-      layout: "/admin",
-    },
-    {
-      path: "/comments",
-      component: <Comments />,
-      layout: "/admin",
-    },
-    {
-      path: "/other-infos",
-      component: <OtherInfos />,
-      layout: "/admin",
-    },
-    {
-      path: "/credits",
-      component: <Credits />,
-      layout: "/admin",
-    }
+    { path: "/questions", component: <Questions />, layout: "/admin" },
+    { path: "/comments", component: <Comments />, layout: "/admin" },
+    { path: "/other-infos", component: <OtherInfos />, layout: "/admin" },
+    { path: "/credits", component: <Credits />, layout: "/admin" },
   ];
 
   useEffect(() => {
@@ -119,9 +142,9 @@ const IndexLayout = (props) => {
       />
       <div className="main-content" ref={mainContent}>
         <Routes>
-          {routes.map((prop, key) =>
+          {routes.map((prop, key) => (
             <Route path={prop.path} element={prop.component} key={key} exact />
-          )}
+          ))}
           <Route path="*" element={<Navigate to="/admin/index" replace />} />
         </Routes>
       </div>

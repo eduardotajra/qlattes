@@ -138,7 +138,6 @@ export async function getAreasData() {
 
 export async function getGroups() {
   let groupsData = await chrome.storage.local.get('groupData');
-
   return groupsData['groupData'] || {};
 }
 

@@ -1,3 +1,4 @@
+/*global chrome*/
 import {
   Container,
   Row,
@@ -14,13 +15,14 @@ import {
   ModalFooter,
 } from "reactstrap";
 import GroupItem from "components/GroupItem";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 
 import {
   addNewGroup,
+  getGroups
 } from "../utils";
 
 const GroupList = ({
@@ -30,26 +32,58 @@ const GroupList = ({
   authorsNameLink,
   allQualisScores
 }) => {
-  if (!groups) groups = [];
-
   const [modal, setModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupAuthors, setNewGroupAuthors] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
 
+  const [localGroups, setLocalGroups] = useState({});
+  const [localAuthors, setLocalAuthors] = useState({});
+
+  // Atualiza localGroups quando groups muda
+  useEffect(() => {
+    if (groups && Object.keys(groups).length > 0) {
+      setLocalGroups(groups);
+    }
+  }, [groups]);
+
+  // Atualiza localAuthors quando authors muda
+  useEffect(() => {
+    if (authors && Object.keys(authors).length > 0) {
+      setLocalAuthors(authors);
+    }
+  }, [authors]);
+
+  const authorOptions = useMemo(() => {
+    if (!localAuthors || Object.keys(localAuthors).length === 0) return [];
+    return Object.entries(localAuthors).map(([link, info]) => ({
+      link,
+      name: info.name,
+    }));
+  }, [localAuthors]);
+
   const toggle = () => setModal(!modal);
 
   const handleNewButton = async () => {
+    let groupsData = await chrome.storage.local.get('groupData')
+    const grupos = groupsData['groupData'];
+    const nomesGrupos = Object.values(grupos).map(grupo => grupo.name);
+
+    const nomeJaExiste = nomesGrupos.some(
+      nome => nome.toLowerCase() === newGroupName.toLowerCase()
+    );
+
+    if (nomeJaExiste) {
+      alert("Já existe um grupo com esse nome!");
+      return;
+    }
+
     await addNewGroup(newGroupName, newGroupAuthors);
     toggle();
     setNewGroupAuthors([]);
     setNewGroupName("");
     updateGroups();
   };
-
-  const handleNewGroupAuthors = (event, values) => {
-    setNewGroupAuthors(values.map(value => value.link));
-  }
 
   const handleCancelButton = () => {
     setNewGroupAuthors([]);
@@ -74,7 +108,7 @@ const GroupList = ({
               </InputGroupAddon>
               <Autocomplete
                 onChange={searchGroupOrAuthor}
-                options={authorsNameLink.concat(Object.values(groups))}
+                options={authorsNameLink.concat(Object.values(localGroups))}
                 getOptionLabel={(option) => option.name}
                 filterSelectedOptions
                 noOptionsText="Não há CVs ou grupos disponíveis"
@@ -118,15 +152,15 @@ const GroupList = ({
       <Container className="mb-5" fluid>
         <Row>
           <div className="col">
-            {Object.entries(groups).map(group => {
-              // If the selected item on search is a group (has an authors item), check if this group has the name selected
+            {Object.entries(localGroups).map(group => {
               if (selectedOption?.authors && group[1].name !== selectedOption.name) return null;
 
-              let groupAuthors = group[1].authors.map(authorLink => ({link: authorLink, name: authors[authorLink].name}));
+              let groupAuthors = group[1].authors
+                .filter(link => localAuthors[link])
+                .map(link => ({ link, name: localAuthors[link].name }));
 
-              // If the selected item on search is a author (has a link item), check if this group has the author selected
               if (selectedOption?.link) {
-                groupAuthors = groupAuthors.filter(item => item.link === selectedOption.link)
+                groupAuthors = groupAuthors.filter(item => item.link === selectedOption.link);
                 if(groupAuthors.length === 0) return null;
               }
 
@@ -134,7 +168,9 @@ const GroupList = ({
                 key={group[0]}
                 groupId={group[0]}
                 groupName={group[1].name}
-                allAuthors={Object.entries(authors).filter(author => !group[1].authors.includes(author[0])).map(author => ({link: author[0], name: author[1].name}))}
+                allAuthors={Object.entries(localAuthors)
+                  .filter(author => !group[1].authors.includes(author[0]))
+                  .map(([link, author]) => ({link, name: author.name}))}
                 authors={groupAuthors}
                 updateGroups={updateGroups}
                 allQualisScores={allQualisScores}
@@ -145,41 +181,36 @@ const GroupList = ({
       </Container>
 
       {/* New group Modal */}
-      <Modal isOpen={modal}>
-        <ModalHeader>Adicionar um novo Grupo</ModalHeader>
+      <Modal isOpen={modal} toggle={toggle}>
+        <ModalHeader toggle={toggle}>Adicionar um novo Grupo</ModalHeader>
         <ModalBody>
-          <Input placeholder="Nome do grupo" type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)}/>
+          <Input
+            placeholder="Nome do grupo"
+            type="text"
+            value={newGroupName}
+            onChange={(e) => setNewGroupName(e.target.value)}
+          />
+
           <Autocomplete
-            onChange={handleNewGroupAuthors}
             multiple
-            options={Object.entries(authors).map(author => ({link: author[0], name: author[1].name}))}
+            options={authorOptions}
+            value={authorOptions.filter(option => newGroupAuthors.includes(option.link))}
+            onChange={(event, newValue) => setNewGroupAuthors(newValue.map(v => v.link))}
             getOptionLabel={(option) => option.name}
-            defaultValue={[]}
             filterSelectedOptions
             noOptionsText="Não há CVs disponíveis"
             renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Selecione um CV"
-              />
+              <TextField {...params} placeholder="Selecione um CV" />
             )}
             sx={{
-              width: '90%',
-              '& .MuiButtonBase-root': {
-                color: '#415e98',
-              },
-              '& .MuiInputBase-input': {
-                color: '#415e98',
-              },
-              '& fieldset': {
-                border: "none",
-              },
-              '& .MuiInputBase-root > .MuiButtonBase-root': {
-                border: '1px #415e98 solid',
-                backgroundColor: 'transparent',
-                '& .MuiSvgIcon-root': {
-                  color: "#415e98"
-                }
+              width: "90%",
+              "& .MuiButtonBase-root": { color: "#415e98" },
+              "& .MuiInputBase-input": { color: "#415e98" },
+              "fieldset": { border: "none" },
+              "& .MuiInputBase-root > .MuiButtonBase-root": {
+                border: "1px #415e98 solid",
+                backgroundColor: "transparent",
+                "& .MuiSvgIcon-root": { color: "#415e98" }
               }
             }}
           />
@@ -193,7 +224,6 @@ const GroupList = ({
           </Button>
         </ModalFooter>
       </Modal>
-
     </>
   );
 };
