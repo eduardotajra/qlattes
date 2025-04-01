@@ -28,6 +28,7 @@ const IndexLayout = (props) => {
   const [groups, setGroups] = useState({});
   const [authorsNameLink, setAuthorsNameLink] = useState([]);
   const [refresh, setRefresh] = useState(0); // Contador para forçar atualização
+  
 
   // Função para buscar informações iniciais
   const getInfos = useCallback(async () => {
@@ -67,17 +68,18 @@ const IndexLayout = (props) => {
   // Listener para atualizar os autores quando o chrome.storage for alterado
   useEffect(() => {
     const storageListener = (changes, namespace) => {
-      if (namespace === "local" && changes.authorsNameLink) {
+      if (namespace === "local" && changes.lattes_data) {
         updateAuthors();
       }
     };
-
+  
     chrome.storage.onChanged.addListener(storageListener);
-
+  
     return () => {
       chrome.storage.onChanged.removeListener(storageListener);
     };
   }, [updateAuthors]);
+  
 
   const routes = [
     {

@@ -60,7 +60,9 @@ const Index = ({
   const [showAll, setShowAll] = React.useState(false);
 
   // useMemo para recalcular cvOptions sempre que authorsNameLink, groups ou refresh mudarem
-  const cvOptions = useMemo(() => {
+  const [cvOptions, setCvOptions] = React.useState([]);
+
+  React.useEffect(() => {
     const authorsNameLinkWithGroup = authorsNameLink.map((author) => ({
       ...author,
       groupType: "Autores",
@@ -69,8 +71,11 @@ const Index = ({
       ...grp,
       groupType: "Grupos",
     }));
-    return [...authorsNameLinkWithGroup, ...groupsWithGroup];
+    const combined = [...authorsNameLinkWithGroup, ...groupsWithGroup];
+    setCvOptions(combined);
   }, [authorsNameLink, groups, refresh]);
+  
+
 
   function handleViewTypeChange(value) {
     if (
