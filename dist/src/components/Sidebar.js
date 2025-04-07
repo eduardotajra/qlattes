@@ -155,7 +155,7 @@ const Sidebar = (props) => {
                   src={require('../assets/img/github-logo.png')} 
                   style={{width:'20px', marginRight: '15px'}}
                 />
-                © 2023 Versão 0.2.1
+                © 2025 Versão 0.2.1
               </NavLink>
             </NavItem>
           </Nav>

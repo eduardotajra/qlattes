@@ -194,7 +194,9 @@ const DataGraph = ({
         : '';
 
     const chartYears = stats[Object.keys(stats)[0]].year;
-    const chartStats = totalStats[Object.values(totalStats)[0]];
+    const firstKey = Object.keys(totalStats)[0];
+    const chartStats = totalStats[firstKey];
+
 
     console.log('chartYears:', chartYears);
     console.log('chartStats:', chartStats);

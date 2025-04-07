@@ -544,6 +544,8 @@ export function getStatisticsAnnotations(
   end,
   init
 ) {
+  console.log("getStatisticsAnnotations chamado com:", totalStats);
+
   const lineAnnotations = [];
 
   if (showStatistics && end - init > 0) {

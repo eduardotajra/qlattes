@@ -32,6 +32,11 @@ const DataTable = ({
   showStatistics,
   areaData
 }) => {
+  if (!stats || !stats.year || !Array.isArray(stats.year)) {
+    console.error("stats.year está indefinido ou mal formatado", stats);
+    return null;
+  }
+  
   init = Number(init);
   end = Number(end);
 

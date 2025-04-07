@@ -42,7 +42,7 @@ const Index = ({
   const [showIndividual, setShowIndividual] = React.useState(false);
   const [showUnificado, setShowUnificado] = React.useState(false);
 
-
+  const [selectedCVs, setSelectedCVs] = React.useState([]);
 
   const [initYear, setInitYear] = React.useState(0);
   const [endYear, setEndYear] = React.useState(0);
@@ -75,7 +75,13 @@ const Index = ({
     setCvOptions(combined);
   }, [authorsNameLink, groups, refresh]);
   
-
+  React.useEffect(() => {
+    if (!showConsolidado && !showIndividual && !showAgrupado) {
+      setShowAgrupado(true); // ativa agrupado como fallback
+    }
+  }, [showConsolidado, showIndividual, showAgrupado]);
+  
+  
 
   function handleViewTypeChange(value) {
     if (
@@ -90,28 +96,6 @@ const Index = ({
     setViewType(value);
   }
 
-  function handleViewTypeChange2(tipo, ativo = false, unificado = false) {
-    if (!ativo) {
-      setViewType("");
-      return;
-    }
-  
-    switch (tipo) {
-      case "Consolidado":
-        setViewType(unificado ? "qualisGraphicConsolidatedUnifiedView" : "qualisGraphicConsolidatedView");
-        break;
-      case "Agrupado":
-        setViewType(unificado ? "qualisGraphicGroupUnifiedView" : "qualisGraphicGroupView");
-        break;
-      case "Individual":
-        setViewType(unificado ? "qualisGraphicIndividualUnifiedView" : "qualisGraphicIndividualView");
-        break;
-      case "Unificado":
-        // chamado apenas quando nenhum dos 3 está ativo
-        setViewType("");
-        break;
-    }
-  }
   
 
   const handleAreaChange = async (event) => {
@@ -224,6 +208,8 @@ const Index = ({
     console.log("Dados de publicação dos CVs e grupos:", groupedPubInfos);
 
     // Processamento dos dados (merge, estatísticas, etc.)
+
+    // All pub info
     const mergedAllPubInfos = {};
     for (const pubInfo of allPubInfos) {
       for (const year in pubInfo) {
@@ -238,6 +224,7 @@ const Index = ({
       mergedAllPubInfos
     );
 
+    // Individual Pub Info
     const mergedIndividualPubInfos = {};
     for (const name in individualPubInfos) {
       mergedIndividualPubInfos[name] = {};
@@ -255,6 +242,7 @@ const Index = ({
       mergedIndividualPubInfos
     );
 
+    // Grouped Pun Info
     const mergedGroupedPubInfos = {};
     for (const group in groupedPubInfos) {
       mergedGroupedPubInfos[group] = {};
@@ -307,6 +295,7 @@ const Index = ({
       };
     }
 
+    // All pub info
     const allPubInfoComplete = addMissingYearsToPubInfo(mergedAllPubInfos);
     allAuthorStats = addMissingYearsToAuthorStats(
       getQualisStats(allPubInfoComplete, "qualis", scores),
@@ -317,6 +306,7 @@ const Index = ({
       allPubInfoComplete
     );
 
+    // Individual Pub Info
     const individualPubInfoComplete = {};
     for (const name in mergedIndividualPubInfos) {
       individualPubInfoComplete[name] = addMissingYearsToPubInfo(
@@ -334,6 +324,7 @@ const Index = ({
       individualPubInfoComplete
     );
 
+    // Grouped Pub Info
     const groupedPubInfoComplete = {};
     for (const group in mergedGroupedPubInfos) {
       groupedPubInfoComplete[group] = addMissingYearsToPubInfo(
@@ -351,6 +342,7 @@ const Index = ({
       groupedPubInfoComplete
     );
 
+    // Total Pub
     let totalPubs = 0;
     for (const key of Object.keys(allAuthorStats.stats)) {
       if (key !== "year" && key !== "jcr") {
@@ -424,8 +416,12 @@ const Index = ({
                 </InputGroupText>
               </InputGroupAddon>
               <Autocomplete
-                onChange={handleCVsSelect}
+                onChange={(event, newValue) => {
+                  setSelectedCVs(newValue);
+                  handleCVsSelect(event, newValue); // já existente
+                }}
                 multiple
+                value={selectedCVs}
                 options={cvOptions}
                 getOptionLabel={(option) => option.name}
                 groupBy={(option) => option.groupType}
@@ -464,6 +460,48 @@ const Index = ({
                     "& .MuiSvgIcon-root": { color: "#415e98" },
                   },
                 }}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Box
+                        key={option.name}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          border: "1px solid #415e98",
+                          borderRadius: "8px",
+                          padding: "4px 8px",
+                          margin: "2px",
+                          backgroundColor: "#f0f4ff",
+                          color: "#415e98",
+                          fontSize: "0.85rem"
+                        }}
+                        {...tagProps}
+                      >
+                        {option.groupType === "Grupos" && (
+                          <i className="fa-solid fa-users" style={{ marginRight: "5px" }}></i>
+                        )}
+                        {option.name}
+                        <i
+                          className="fas fa-times"
+                          style={{
+                            marginLeft: "8px",
+                            cursor: "pointer"
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation(); // evita abrir o menu
+                            const newValue = value.filter((_, i) => i !== index);
+                            setSelectedCVs(newValue);
+                            handleCVsSelect(null, newValue); // atualiza os dados
+                          }}
+                        ></i>
+                      </Box>
+                    );
+                  })
+                }
+                
+                           
               />
             </InputGroup>
             {/* Label */}
@@ -545,36 +583,21 @@ const Index = ({
                       Selecione uma visualização
                     </option>
                     <optgroup label="Classificação" style={{ color: "black" }}>
-                      <option value="qualisTableView">
+                      <option value="qualisTable">
                         Tabela de classificação Qualis
                       </option>
-                      <option value="qualisGraphicConsolidatedView">
-                        Gráfico de classificação Qualis (consolidado)
-                      </option>
-                      <option value="qualisGraphicConsolidatedUnifiedView">
-                        Gráfico de classificação Qualis (consolidado unificado)
-                      </option>
-                      <option value="qualisGraphicGroupView">
-                        Gráfico de classificação Qualis (agrupado)
-                      </option>
-                      <option value="qualisGraphicGroupUnifiedView">
-                        Gráfico de classificação Qualis (agrupado unificado)
-                      </option>
-                      <option value="qualisGraphicIndividualView">
-                        Gráfico de classificação Qualis (individual)
-                      </option>
-                      <option value="qualisGraphicIndividualUnifiedView">
-                        Gráfico de classificação Qualis (individual unificado)
+                      <option value="qualisGraphic">
+                        Gráfico de classificação Qualis
                       </option>
                       <option value="qualisGraphicParetoCVView">
                         Gráfico de percentual de produção Qualis (por CV)
                       </option>
                     </optgroup>
                     <optgroup label="Pontuação" style={{ color: "black" }}>
-                      <option disabled={!(areaData && areaData.scores)} value="scoreTableView">
+                      <option disabled={!(areaData && areaData.scores)} value="scoreTable">
                         Tabela de pontuação Qualis
                       </option>
-                      <option disabled={!(areaData && areaData.scores)} value="scoreGraphicView">
+                      <option disabled={!(areaData && areaData.scores)} value="scoreGraphic">
                         Gráfico de pontuação Qualis
                       </option>
                     </optgroup>
@@ -670,83 +693,75 @@ const Index = ({
                   </Input>
                 </InputGroup>
                 {/* Statistics */}
-                <InputGroupText
-                  className="mt-3 ml-4"
-                  style={{ backgroundColor: "transparent", border: "none" }}
-                >
-                  <Input
-                    addon
-                    aria-label="Checkbox for following text input"
-                    type="checkbox"
-                    value={showStatistics}
-                    onChange={(e) => setShowStatistics(!showStatistics)}
-                  />
-                  <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
-                    Exibir estatísticas
-                  </Label>
-                  <Input
-                    type="checkbox"
-                    checked={showConsolidado}
-                    onChange={() => {
-                      const novoValor = !showConsolidado;
-                      setShowConsolidado(novoValor);
-                      setShowAgrupado(false);
-                      setShowIndividual(false);
-                      handleViewTypeChange2("Consolidado", novoValor, showUnificado);
-                    }}
-                  />
-                  <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                    Consolidado
-                  </Label>
+                {["qualisTable", "qualisGraphic", "scoreTable", "scoreGraphic"].includes(viewType) && (
+                  
+                  <InputGroupText
+                    className="mt-3 ml-4"
+                    style={{ backgroundColor: "transparent", border: "none" }}
+                  >
+                    <Input
+                      addon
+                      aria-label="Checkbox for following text input"
+                      type="checkbox"
+                      value={showStatistics}
+                      onChange={(e) => setShowStatistics(!showStatistics)}
+                    />
+                    <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
+                      Exibir estatísticas
+                    </Label>
+                    <Input
+                      type="checkbox"
+                      checked={showConsolidado}
+                      onChange={() => {
+                        const novoValor = !showConsolidado;
+                        setShowConsolidado(novoValor);
+                        setShowAgrupado(false);
+                        setShowIndividual(false);
+                        setViewType(viewType);
 
-                  <Input
-                    type="checkbox"
-                    checked={showAgrupado}
-                    onChange={() => {
-                      const novoValor = !showAgrupado;
-                      setShowAgrupado(novoValor);
-                      setShowConsolidado(false);
-                      setShowIndividual(false);
-                      handleViewTypeChange2("Agrupado", novoValor, showUnificado);
-                    }}
-                  />
-                  <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                    Agrupado
-                  </Label>
+                        if (!novoValor && !showIndividual && !showAgrupado) {
+                          setShowAgrupado(true);
+                        }
+                      }}
+                    />
+                    <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
+                      Consolidar dados de todos os currículos
+                    </Label>
 
-                  <Input
-                    type="checkbox"
-                    checked={showIndividual}
-                    onChange={() => {
-                      const novoValor = !showIndividual;
-                      setShowIndividual(novoValor);
-                      setShowConsolidado(false);
-                      setShowAgrupado(false);
-                      handleViewTypeChange2("Individual", novoValor, showUnificado);
-                    }}
-                  />
-                  <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                    Individual
-                  </Label>
+                    <Input
+                      type="checkbox"
+                      checked={showIndividual}
+                      onChange={() => {
+                        const novoValor = !showIndividual;
+                        setShowIndividual(novoValor);
+                        setShowConsolidado(false);
+                        setShowAgrupado(false);
+                        setViewType(viewType);
 
-                  <Input
-                    type="checkbox"
-                    checked={showUnificado}
-                    onChange={() => {
-                      const novoValor = !showUnificado;
-                      setShowUnificado(novoValor);
-                      // Repassa o ativo atual (entre Consolidado, Agrupado ou Individual)
-                      if (showConsolidado) handleViewTypeChange2("Consolidado", true, novoValor);
-                      else if (showAgrupado) handleViewTypeChange2("Agrupado", true, novoValor);
-                      else if (showIndividual) handleViewTypeChange2("Individual", true, novoValor);
-                      else handleViewTypeChange2("Unificado", false, novoValor); // Nenhum marcado
-                    }}
-                  />
-                  <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                    Unificado
-                  </Label>
+                        if (!novoValor && !showConsolidado && !showAgrupado) {
+                          setShowAgrupado(true);
+                        }
+                      }}
+                    />
+                    <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
+                      Exibir dados por currículo
+                    </Label>
 
-                </InputGroupText>
+                    <Input
+                      type="checkbox"
+                      checked={showUnificado}
+                      onChange={() => {
+                        const novoValor = !showUnificado;
+                        setShowUnificado(novoValor);
+                        setViewType(viewType)
+                      }}
+                    />
+                    <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
+                      Consolidar dados de todos os anos
+                    </Label>
+
+                  </InputGroupText>
+                )}
               </FormGroup>
             </>
           )}
@@ -755,78 +770,46 @@ const Index = ({
       <Container className="mb-5" fluid>
         {showAll && (
           <>
-            {viewType === "qualisTableView" && (
+            {viewType === "qualisTable" && (
               <DataTable
                 tableName="Tabela de classificação Qualis"
                 init={initYearInput}
                 end={endYearInput}
-                stats={stats}
+                stats={
+                  showConsolidado
+                    ? stats?.__all
+                    : showIndividual
+                    ? Object.values(individualStats)[0]
+                    : showAgrupado
+                    ? Object.values(groupStats)[0]
+                    : [] // <---- aqui é o importante
+                }
+                
+                              
                 showStatistics={showStatistics}
               />
             )}
-            {viewType === "qualisGraphicConsolidatedView" && (
+
+            {viewType === "qualisGraphic" && (
               <DataGraph
-                graphName="Gráfico de classificação Qualis (consolidado)"
+                graphName="Gráfico de classificação Qualis"
                 init={initYearInput}
                 end={endYearInput}
-                stats={stats}
+                stats={
+                  showConsolidado
+                    ? { Consolidado: stats?.__all }
+                    : showIndividual
+                    ? individualStats
+                    : showAgrupado
+                    ? groupStats
+                    : {} // <---- aqui também
+                }                
                 qualisFilter={qualisFilter}
                 showStatistics={showStatistics}
+                isUnifiedChart={showUnificado}
               />
             )}
-            {viewType === "qualisGraphicConsolidatedUnifiedView" && (
-              <DataGraph
-                graphName="Gráfico de classificação Qualis (consolidado unificado)"
-                init={initYearInput}
-                end={endYearInput}
-                stats={stats}
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-                isUnifiedChart={true}
-              />
-            )}
-            {viewType === "qualisGraphicGroupView" && (
-              <DataGraph
-                graphName="Gráfico de classificação Qualis (agrupado)"
-                init={initYearInput}
-                end={endYearInput}
-                stats={groupStats}
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-              />
-            )}
-            {viewType === "qualisGraphicGroupUnifiedView" && (
-              <DataGraph
-                graphName="Gráfico de classificação Qualis (agrupado unificado)"
-                init={initYearInput}
-                end={endYearInput}
-                stats={groupStats}
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-                isUnifiedChart={true}
-              />
-            )}
-            {viewType === "qualisGraphicIndividualView" && (
-              <DataGraph
-                graphName="Gráfico de classificação Qualis (individual)"
-                init={initYearInput}
-                end={endYearInput}
-                stats={individualStats}
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-              />
-            )}
-            {viewType === "qualisGraphicIndividualUnifiedView" && (
-              <DataGraph
-                graphName="Gráfico de classificação Qualis (individual unificado)"
-                init={initYearInput}
-                end={endYearInput}
-                stats={individualStats}
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-                isUnifiedChart={true}
-              />
-            )}
+
             {viewType === "qualisGraphicParetoCVView" && (
               <DataGraph
                 graphName="Gráfico de percentual de produção Qualis (por CV)"
@@ -839,27 +822,50 @@ const Index = ({
                 isParetoChart={true}
               />
             )}
-            {viewType === "scoreTableView" && (
+            {viewType === "scoreTable" && (
               <DataTable
                 tableName="Tabela de pontuação Qualis"
                 init={initYearInput}
                 end={endYearInput}
-                stats={stats}
+                stats={
+                  showConsolidado
+                    ? stats?.__all
+                    : showIndividual
+                    ? Object.values(individualStats)[0]
+                    : showAgrupado
+                    ? Object.values(groupStats)[0]
+                    : [] // <---- aqui é o importante
+                }
+                
+                
                 showStatistics={showStatistics}
                 areaData={areaData}
               />
             )}
-            {viewType === "scoreGraphicView" && (
+
+            {viewType === "scoreGraphic" && (
               <DataGraph
                 graphName="Gráfico de pontuação Qualis"
                 init={initYearInput}
                 end={endYearInput}
-                stats={stats}
-                statsFilter={qualisFilter}
+                stats={
+                  showConsolidado
+                    ? { Consolidado: stats?.__all }
+                    : showIndividual
+                    ? individualStats
+                    : showAgrupado
+                    ? groupStats
+                    : {} // <---- aqui também
+                }
+                
+                
+                qualisFilter={qualisFilter}
                 showStatistics={showStatistics}
+                isUnifiedChart={showUnificado}
                 areaData={areaData}
               />
             )}
+          
             {viewType === "top5View" && (
               <TopTable
                 tableName="5 melhores publicações"
@@ -869,6 +875,7 @@ const Index = ({
                 pubInfo={pubInfo}
               />
             )}
+
             {viewType === "top10View" && (
               <TopTable
                 tableName="10 melhores publicações"
@@ -878,6 +885,7 @@ const Index = ({
                 pubInfo={pubInfo}
               />
             )}
+
           </>
         )}
         {areaData?.scores && viewType.includes("score") && (
