@@ -81,6 +81,23 @@ const Index = ({
     }
   }, [showConsolidado, showIndividual, showAgrupado]);
   
+  React.useEffect(() => {
+    const uniquePeople = new Set();
+  
+    selectedCVs.forEach((item) => {
+      if (item.groupType === "Grupos" && Array.isArray(item.authors)) {
+        item.authors.forEach((author) => uniquePeople.add(author));
+      } else if (item.groupType === "Autores" && item.link) {
+        uniquePeople.add(item.link);
+      }
+    });
+  
+    const totalSelectedPeople = uniquePeople.size;
+  
+    if (viewType === "qualisGraphicParetoCVView" && totalSelectedPeople < 2) {
+      setViewType(""); // força a resetar o gráfico
+    }
+  }, [selectedCVs, viewType]);
   
 
   function handleViewTypeChange(value) {
@@ -93,8 +110,18 @@ const Index = ({
       );
       return;
     }
+  
+    if (value === "qualisGraphicParetoCVView" && !canShowParetoCVView) {
+      alert(
+        `Para visualizar esse gráfico, selecione pelo menos duas pessoas (individuais ou dentro de um grupo).`
+      );
+      return;
+    }
+  
     setViewType(value);
   }
+  
+  
 
   
 
@@ -395,6 +422,24 @@ const Index = ({
     setArea(previousArea.area);
     setAreaData(previousArea);
   }
+
+  const hasGroupSelected = selectedCVs.some((item) => item.groupType === "Grupos");
+
+  const uniquePeople = new Set();
+
+  selectedCVs.forEach((item) => {
+    if (item.groupType === "Grupos" && Array.isArray(item.authors)) {
+      item.authors.forEach((author) => uniquePeople.add(author));
+    } else if (item.groupType === "Autores" && item.link) {
+      uniquePeople.add(item.link);
+    }
+  });
+
+  const totalSelectedPeople = uniquePeople.size;
+  const canShowParetoCVView = totalSelectedPeople >= 2;
+  
+
+  
 
   return (
     <>
@@ -728,24 +773,29 @@ const Index = ({
                       Consolidar dados de todos os currículos
                     </Label>
 
-                    <Input
-                      type="checkbox"
-                      checked={showIndividual}
-                      onChange={() => {
-                        const novoValor = !showIndividual;
-                        setShowIndividual(novoValor);
-                        setShowConsolidado(false);
-                        setShowAgrupado(false);
-                        setViewType(viewType);
+                    {hasGroupSelected && (
+                      <>
+                        <Input
+                          type="checkbox"
+                          checked={showIndividual}
+                          onChange={() => {
+                            const novoValor = !showIndividual;
+                            setShowIndividual(novoValor);
+                            setShowConsolidado(false);
+                            setShowAgrupado(false);
+                            setViewType(viewType);
 
-                        if (!novoValor && !showConsolidado && !showAgrupado) {
-                          setShowAgrupado(true);
-                        }
-                      }}
-                    />
-                    <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                      Exibir dados por currículo
-                    </Label>
+                            if (!novoValor && !showConsolidado && !showAgrupado) {
+                              setShowAgrupado(true);
+                            }
+                          }}
+                        />
+                        <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
+                          Exibir dados por currículo
+                        </Label>
+                      </>
+                    )}
+
 
                     <Input
                       type="checkbox"

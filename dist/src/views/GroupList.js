@@ -39,6 +39,11 @@ const GroupList = ({
 
   const [localGroups, setLocalGroups] = useState({});
   const [localAuthors, setLocalAuthors] = useState({});
+  
+  const [editingGroupId, setEditingGroupId] = useState(null);
+  const [editingGroupName, setEditingGroupName] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
 
   // Atualiza localGroups quando groups muda
   useEffect(() => {
@@ -53,6 +58,29 @@ const GroupList = ({
       setLocalAuthors(authors);
     }
   }, [authors]);
+
+  
+  const handleSaveEdit = async () => {
+    const groupsData = await chrome.storage.local.get("groupData");
+    const groupData = groupsData.groupData;
+  
+    const nameAlreadyExists = Object.entries(groupData).some(
+      ([id, g]) =>
+        id !== editingGroupId &&
+        g.name.trim().toLowerCase() === editingGroupName.trim().toLowerCase()
+    );
+  
+    if (nameAlreadyExists) {
+      alert("Já existe um grupo com esse nome!");
+      return;
+    }
+  
+    groupData[editingGroupId].name = editingGroupName;
+    await chrome.storage.local.set({ groupData });
+    setEditModalOpen(false);
+    updateGroups();
+  };
+  
 
   const authorOptions = useMemo(() => {
     if (!localAuthors || Object.keys(localAuthors).length === 0) return [];
@@ -174,6 +202,11 @@ const GroupList = ({
                 authors={groupAuthors}
                 updateGroups={updateGroups}
                 allQualisScores={allQualisScores}
+                onEditGroupName={(groupId, currentName) => {
+                  setEditingGroupId(groupId);
+                  setEditingGroupName(currentName);
+                  setEditModalOpen(true);
+                }}
               />
             })}
           </div>
@@ -222,6 +255,21 @@ const GroupList = ({
           <Button color="secondary" onClick={handleCancelButton}>
             Cancelar
           </Button>
+        </ModalFooter>
+      </Modal>
+      <Modal isOpen={editModalOpen} toggle={() => setEditModalOpen(!editModalOpen)}>
+        <ModalHeader>Editar nome do grupo</ModalHeader>
+        <ModalBody>
+          <Input
+            placeholder="Novo nome do grupo"
+            type="text"
+            value={editingGroupName}
+            onChange={(e) => setEditingGroupName(e.target.value)}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={handleSaveEdit}>Salvar</Button>
+          <Button color="secondary" onClick={() => setEditModalOpen(false)}>Cancelar</Button>
         </ModalFooter>
       </Modal>
     </>

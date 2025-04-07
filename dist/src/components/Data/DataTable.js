@@ -138,6 +138,8 @@ const DataTable = ({
       // update total stats lists
       statistics[key].countList = statistics[key].countList || [];
       statistics[key].yearList.push(stats.year[currYear]);
+      statistics[key].countList.push(yearCounts[key]);
+
 
       // update total stats best
       if (yearCounts[key] >= statistics[key].best.count) {
