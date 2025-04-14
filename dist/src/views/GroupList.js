@@ -110,11 +110,6 @@ const GroupList = ({
       return;
     }
     
-    if (newGroupAuthors.length === 0) {
-      alert("O grupo deve ter pelo menos uma pessoa.");
-      return;
-    }
-    
     if (nomeJaExiste) {
       alert("Já existe um grupo com esse nome!");
       return;

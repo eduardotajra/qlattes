@@ -41,7 +41,7 @@ const DataTable = ({
   end = Number(end);
 
   // Init data arrays
-  const years = stats.year.filter(year => year >= init && year <= end).map(year => year.toString());
+  const years = stats.year.length === 1 ? stats.year : stats.year.filter(year => year >= init && year <= end).map(year => year.toString());
   const qualis = {
     A1: Array(years.length).fill(0),
     A2: Array(years.length).fill(0),
@@ -150,7 +150,7 @@ const DataTable = ({
   }
   
   // Create header from data arrays
-  const header = ["Ano"].concat(Object.keys(qualis))
+  const header = [stats.year.length === 1 ? stats.year[0] : "Ano"].concat(Object.keys(qualis))
     .concat(Object.keys(totals).map(item => item === "all" ? "Total" : "Tot " + item))
     .concat(Object.keys(percentages).map(item => "% " + item));
   const headerLegend = areaData && areaData.scores && [""].concat(Object.keys(qualis).map(item => areaData.scores[item]))
@@ -197,12 +197,13 @@ const DataTable = ({
   // Set rows
   const rows = years.map((year, index) =>
     <React.Fragment>
-      <TableCell scope="row">{year}</TableCell>
+      <TableCell scope="row">{stats.year.length === 1 ? stats.year[0] : year}</TableCell>
       {Object.values(qualis).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
       {Object.values(totals).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
       {Object.values(percentages).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
     </React.Fragment>
   ).reverse();
+  
 
   // Set Table Height
   const tableHeight = `${showStatistics ? Math.min(636, rows.length * 53 + 320) : Math.min(424, rows.length * 53 + 108)}px !important`;

@@ -440,6 +440,21 @@ const Index = ({
   const totalSelectedPeople = uniquePeople.size;
   const canShowParetoCVView = totalSelectedPeople >= 2;
   
+  // Função auxiliar para consolidar os dados dos anos
+  function unifyStats(stats) {
+    if (!stats || !stats.year || stats.year.length === 0) return stats;
+
+    const unifiedStats = {};
+    unifiedStats.year = ["Todos os anos"];
+
+    Object.keys(stats).forEach((key) => {
+      if (key === "year") return;
+      unifiedStats[key] = [stats[key].reduce((acc, val) => acc + val, 0)];
+    });
+
+    return unifiedStats;
+  }
+
 
   
 
@@ -847,24 +862,72 @@ const Index = ({
         {showAll && (
           <>
             {viewType === "qualisTable" && (
-              <DataTable
-                tableName="Tabela de classificação Qualis"
-                init={initYearInput}
-                end={endYearInput}
-                stats={
-                  showConsolidado
-                    ? { "__all": stats?.__all }
-                    : showIndividual
-                    ? individualStats
-                    : showAgrupado
-                    ? { ...groupStats, ...individualStats }
-                    : { ...groupStats, ...individualStats } // modo padrão
-                }
-                
-                
-                              
-                showStatistics={showStatistics}
-              />
+              <>
+                {showConsolidado ? (
+                  <DataTable
+                    tableName="Todos os currículos"
+                    init={initYearInput}
+                    end={endYearInput}
+                    stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
+                    showStatistics={showStatistics}
+                    areaData={areaData}
+                    unified={showUnificado}
+                  />
+                ) : showIndividual ? (
+                  Object.entries(individualStats).map(([name, stat]) => (
+                    <DataTable
+                      key={name}
+                      tableName={name}
+                      init={initYearInput}
+                      end={endYearInput}
+                      stats={showUnificado ? unifyStats(stat) : stat}
+                      showStatistics={showStatistics}
+                      areaData={areaData}
+                      unified={showUnificado}
+                    />
+                  ))
+                ) : showAgrupado ? (
+                  Object.entries(groupStats).map(([name, stat]) => (
+                    <DataTable
+                      key={name}
+                      tableName={name}
+                      init={initYearInput}
+                      end={endYearInput}
+                      stats={showUnificado ? unifyStats(stat) : stat}
+                      showStatistics={showStatistics}
+                      areaData={areaData}
+                      unified={showUnificado}
+                    />
+                  ))
+                ) : (
+                  <>
+                    {Object.entries(groupStats).map(([name, stat]) => (
+                      <DataTable
+                        key={name}
+                        tableName={name}
+                        init={initYearInput}
+                        end={endYearInput}
+                        stats={showUnificado ? unifyStats(stat) : stat}
+                        showStatistics={showStatistics}
+                        areaData={areaData}
+                        unified={showUnificado}
+                      />
+                    ))}
+                    {Object.entries(individualStats).map(([name, stat]) => (
+                      <DataTable
+                        key={name}
+                        tableName={name}
+                        init={initYearInput}
+                        end={endYearInput}
+                        stats={showUnificado ? unifyStats(stat) : stat}
+                        showStatistics={showStatistics}
+                        areaData={areaData}
+                        unified={showUnificado}
+                      />
+                    ))}
+                  </>
+                )}
+              </>
             )}
 
             {viewType === "qualisGraphic" && (
@@ -900,26 +963,69 @@ const Index = ({
               />
             )}
             {viewType === "scoreTable" && (
-              <DataTable
-                tableName="Tabela de pontuação Qualis"
-                init={initYearInput}
-                end={endYearInput}
-                stats={
-                  showConsolidado
-                    ? { "__all": stats?.__all }
-                    : showIndividual
-                    ? individualStats
-                    : showAgrupado
-                    ? { ...groupStats, ...individualStats }
-                    : { ...groupStats, ...individualStats } // modo padrão
-                }
-                
-                
-                
-                showStatistics={showStatistics}
-                areaData={areaData}
-              />
+              <>
+                {showConsolidado ? (
+                  <DataTable
+                    tableName="Tabela de pontuação Qualis"
+                    init={initYearInput}
+                    end={endYearInput}
+                    stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
+                    showStatistics={showStatistics}
+                    areaData={areaData}
+                  />
+                ) : showIndividual ? (
+                  Object.entries(individualStats).map(([name, stat]) => (
+                    <DataTable
+                      key={name}
+                      tableName={name}
+                      init={initYearInput}
+                      end={endYearInput}
+                      stats={showUnificado ? unifyStats(stat) : stat}
+                      showStatistics={showStatistics}
+                      areaData={areaData}
+                    />
+                  ))
+                ) : showAgrupado ? (
+                  Object.entries(groupStats).map(([name, stat]) => (
+                    <DataTable
+                      key={name}
+                      tableName={name}
+                      init={initYearInput}
+                      end={endYearInput}
+                      stats={showUnificado ? unifyStats(stat) : stat}
+                      showStatistics={showStatistics}
+                      areaData={areaData}
+                    />
+                  ))
+                ) : (
+                  <>
+                    {Object.entries(groupStats).map(([name, stat]) => (
+                      <DataTable
+                        key={name}
+                        tableName={name}
+                        init={initYearInput}
+                        end={endYearInput}
+                        stats={showUnificado ? unifyStats(stat) : stat}
+                        showStatistics={showStatistics}
+                        areaData={areaData}
+                      />
+                    ))}
+                    {Object.entries(individualStats).map(([name, stat]) => (
+                      <DataTable
+                        key={name}
+                        tableName={name}
+                        init={initYearInput}
+                        end={endYearInput}
+                        stats={showUnificado ? unifyStats(stat) : stat}
+                        showStatistics={showStatistics}
+                        areaData={areaData}
+                      />
+                    ))}
+                  </>
+                )}
+              </>
             )}
+
 
             {viewType === "scoreGraphic" && (
               <DataGraph

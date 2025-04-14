@@ -260,8 +260,28 @@ const DataGraph = ({
       isUnifiedChart
     );
     
+    const visibleColumnsWithData = previewGraphic.data.labels.filter((_, colIndex) => {
+      const totalValue = previewGraphic.data.datasets.reduce((acc, dataset) => {
+        const val = dataset.data[colIndex];
+        return acc + (typeof val === "number" ? val : 0);
+      }, 0);
+      return totalValue > 0;
+    });
+    
     // se tiver mais de uma label (barra), usa as estatísticas de verdade
-    const shouldShowStatistics = showStatistics && previewGraphic.data.labels.length > 1;
+    // Conta quantas colunas (labels) têm pelo menos um valor > 0 em qualquer dataset
+    const shouldShowStatistics = showStatistics && (
+      isUnifiedChart
+        ? (
+            previewGraphic.data.datasets.length > 1 ||
+            previewGraphic.data.datasets[0].data.filter(val => typeof val === 'number' && val > 0).length > 1
+          )
+        : visibleColumnsWithData.length >= 2
+    );
+    
+
+    
+    
     
     // agora refaz com estatísticas reais (ou falsas)
     graphicConfig = getBarChatInfo(
