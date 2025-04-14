@@ -61,6 +61,10 @@ const GroupList = ({
 
   
   const handleSaveEdit = async () => {
+    if (!editingGroupName.trim()) {
+      alert("O nome do grupo não pode ser vazio.");
+      return;
+    }    
     const groupsData = await chrome.storage.local.get("groupData");
     const groupData = groupsData.groupData;
   
@@ -101,10 +105,22 @@ const GroupList = ({
       nome => nome.toLowerCase() === newGroupName.toLowerCase()
     );
 
+    if (!newGroupName.trim()) {
+      alert("O nome do grupo não pode ser vazio.");
+      return;
+    }
+    
+    if (newGroupAuthors.length === 0) {
+      alert("O grupo deve ter pelo menos uma pessoa.");
+      return;
+    }
+    
     if (nomeJaExiste) {
       alert("Já existe um grupo com esse nome!");
       return;
     }
+    
+    
 
     await addNewGroup(newGroupName, newGroupAuthors);
     toggle();

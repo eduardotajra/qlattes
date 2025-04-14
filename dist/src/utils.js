@@ -568,7 +568,7 @@ export function getStatisticsAnnotations(
       borderDash: [6, 6],
       label: {
         content: 'Média ' + mean,
-        position: 'end',
+        position: 'start',
         padding: 4,
         backgroundColor: 'rgba(44, 76, 140, 0.7)',
         font: {
@@ -1167,6 +1167,9 @@ export function filterDataCounts(inputDataCounts, catFilters) {
 }
 
 function abbreviatePortugueseName(fullName) {
+  if (fullName === 'Todos os currículos' || fullName === "Todos os CVs") {
+    return fullName;
+  }
   // Common bridging words in Portuguese
   const BRIDGING_WORDS = new Set(['de', 'do', 'da', 'das', 'dos', 'e']);
 

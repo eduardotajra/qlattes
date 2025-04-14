@@ -58,6 +58,8 @@ const Index = ({
   const [individualPubInfo, setIndividualPubInfo] = React.useState([]);
   const [groupPubInfo, setGroupPubInfo] = React.useState([]);
   const [showAll, setShowAll] = React.useState(false);
+  const [selectedPeriod, setSelectedPeriod] = React.useState("empty");
+
 
   // useMemo para recalcular cvOptions sempre que authorsNameLink, groups ou refresh mudarem
   const [cvOptions, setCvOptions] = React.useState([]);
@@ -457,13 +459,13 @@ const Index = ({
             >
               <InputGroupAddon addonType="prepend">
                 <InputGroupText>
-                  <i className="fas fa-user" style={{ color: "#415e98" }} />
+                  <i className="fas fa-magnifying-glass" style={{ color: "#415e98" }} />
                 </InputGroupText>
               </InputGroupAddon>
               <Autocomplete
                 onChange={(event, newValue) => {
                   setSelectedCVs(newValue);
-                  handleCVsSelect(event, newValue); // já existente
+                  handleCVsSelect(event, newValue);
                 }}
                 multiple
                 value={selectedCVs}
@@ -488,10 +490,21 @@ const Index = ({
                     </React.Fragment>
                   );
                 }}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    {option.groupType === "Autores" && (
+                      <i className="fas fa-user" style={{ marginRight: "8px", color: "#415e98" }}></i>
+                    )}
+                    {option.groupType === "Grupos" && (
+                      <i className="fa-solid fa-users" style={{ marginRight: "8px", color: "#415e98" }}></i>
+                    )}
+                    {option.name}
+                  </li>
+                )}
                 defaultValue={[]}
                 filterSelectedOptions
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Selecione um CV" />
+                  <TextField {...params} placeholder="Selecione um ou mais CV(s) ou grupo(s)" />
                 )}
                 noOptionsText="Não há CVs disponíveis"
                 sx={{
@@ -527,6 +540,9 @@ const Index = ({
                         {option.groupType === "Grupos" && (
                           <i className="fa-solid fa-users" style={{ marginRight: "5px" }}></i>
                         )}
+                        {option.groupType === "Autores" && (
+                          <i className="fas fa-user" style={{ marginRight: "5px" }}></i>
+                        )}
                         {option.name}
                         <i
                           className="fas fa-times"
@@ -535,19 +551,18 @@ const Index = ({
                             cursor: "pointer"
                           }}
                           onClick={(e) => {
-                            e.stopPropagation(); // evita abrir o menu
+                            e.stopPropagation();
                             const newValue = value.filter((_, i) => i !== index);
                             setSelectedCVs(newValue);
-                            handleCVsSelect(null, newValue); // atualiza os dados
+                            handleCVsSelect(null, newValue);
                           }}
                         ></i>
                       </Box>
                     );
                   })
                 }
-                
-                           
               />
+
             </InputGroup>
             {/* Label */}
             {showAll && (
@@ -670,7 +685,10 @@ const Index = ({
                     max={endYearInput}
                     value={initYearInput}
                     required="required"
-                    onChange={(e) => setInitYearInput(e.target.value)}
+                    onChange={(e) => {
+                      setInitYearInput(e.target.value)
+                      setSelectedPeriod("empty");
+                    }}
                     style={{ color: "#415e98" }}
                   />
                 </InputGroup>
@@ -704,10 +722,13 @@ const Index = ({
                     max={endYear}
                     value={endYearInput}
                     required="required"
-                    onChange={(e) => setEndYearInput(e.target.value)}
+                    onChange={(e) => {
+                      setEndYearInput(e.target.value)
+                      setSelectedPeriod("empty");
+                    }}
                   />
                 </InputGroup>
-                {/* Period */}
+                {/* Period */}  
                 <InputGroup
                   className="input-group-alternative mt-3"
                   style={{ border: "none", backgroundColor: "white" }}
@@ -723,9 +744,15 @@ const Index = ({
                     type="select"
                     className="input-group-alternative"
                     style={{ marginRight: "15px", color: "#415e98" }}
-                    onChange={(e) => handleSelectedPeriod(e.target.value)}
-                    defaultValue="all"
+                    value={selectedPeriod}
+                    onChange={(e) => {
+                      setSelectedPeriod(e.target.value);
+                      handleSelectedPeriod(e.target.value);
+                    }}
                   >
+                    <option value="empty" style={{ color: "black" }}>
+                      Selecione um período
+                    </option>
                     <option value="last5" style={{ color: "black" }}>
                       Últimos 5 anos
                     </option>
@@ -763,7 +790,6 @@ const Index = ({
                         setShowAgrupado(false);
                         setShowIndividual(false);
                         setViewType(viewType);
-
                         if (!novoValor && !showIndividual && !showAgrupado) {
                           setShowAgrupado(true);
                         }
@@ -807,7 +833,7 @@ const Index = ({
                       }}
                     />
                     <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                      Consolidar dados de todos os anos
+                    Consolidar dados dos anos selecionados
                     </Label>
 
                   </InputGroupText>
@@ -827,13 +853,14 @@ const Index = ({
                 end={endYearInput}
                 stats={
                   showConsolidado
-                    ? stats?.__all
+                    ? { "__all": stats?.__all }
                     : showIndividual
-                    ? Object.values(individualStats)[0]
+                    ? individualStats
                     : showAgrupado
-                    ? Object.values(groupStats)[0]
-                    : [] // <---- aqui é o importante
+                    ? { ...groupStats, ...individualStats }
+                    : { ...groupStats, ...individualStats } // modo padrão
                 }
+                
                 
                               
                 showStatistics={showStatistics}
@@ -847,7 +874,7 @@ const Index = ({
                 end={endYearInput}
                 stats={
                   showConsolidado
-                    ? { Consolidado: stats?.__all }
+                    ? { "Todos os CV's": stats?.__all }
                     : showIndividual
                     ? individualStats
                     : showAgrupado
@@ -879,13 +906,14 @@ const Index = ({
                 end={endYearInput}
                 stats={
                   showConsolidado
-                    ? stats?.__all
+                    ? { "__all": stats?.__all }
                     : showIndividual
-                    ? Object.values(individualStats)[0]
+                    ? individualStats
                     : showAgrupado
-                    ? Object.values(groupStats)[0]
-                    : [] // <---- aqui é o importante
+                    ? { ...groupStats, ...individualStats }
+                    : { ...groupStats, ...individualStats } // modo padrão
                 }
+                
                 
                 
                 showStatistics={showStatistics}
@@ -900,7 +928,7 @@ const Index = ({
                 end={endYearInput}
                 stats={
                   showConsolidado
-                    ? { Consolidado: stats?.__all }
+                    ? { "Todos os CV's": stats?.__all }
                     : showIndividual
                     ? individualStats
                     : showAgrupado

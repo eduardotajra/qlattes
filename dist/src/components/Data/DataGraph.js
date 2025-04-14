@@ -50,6 +50,45 @@ const DataGraph = ({
 }) => {
   console.log('stats:', stats);
 
+  function unifyTotalStats(totalStats) {
+  const unified = {};
+
+  // Pega as chaves (A, B, C, N, tot)
+  for (const key of Object.keys(totalStats[Object.keys(totalStats)[0]])) {
+    unified[key] = {
+      best: { count: 0, year: 0 },
+      countList: [],
+      yearList: [],
+    };
+  }
+
+  const allKeys = Object.keys(totalStats);
+  const length = totalStats[allKeys[0]].tot.countList.length;
+
+  for (let i = 0; i < length; i++) {
+    for (const key of Object.keys(unified)) {
+      let sum = 0;
+      let year = 0;
+
+      for (const curr of allKeys) {
+        sum += totalStats[curr][key].countList[i] || 0;
+        year = totalStats[curr][key].yearList[i] || year;
+      }
+
+      unified[key].countList.push(sum);
+      unified[key].yearList.push(year);
+
+      if (sum > unified[key].best.count) {
+        unified[key].best.count = sum;
+        unified[key].best.year = year;
+      }
+    }
+  }
+
+  return unified;
+}
+
+
   let length = 0;
   const qualis = {};
   const dataCols = {};
@@ -194,18 +233,25 @@ const DataGraph = ({
         : '';
 
     const chartYears = stats[Object.keys(stats)[0]].year;
-    const firstKey = Object.keys(totalStats)[0];
-    const chartStats = totalStats[firstKey];
+    let chartStats;
+
+    if (Object.keys(totalStats).length > 1 && (isUnifiedChart || graphName.includes("Todos os CVs"))) {
+      chartStats = unifyTotalStats(totalStats);
+    } else {
+      const firstKey = Object.keys(totalStats)[0];
+      chartStats = totalStats[firstKey];
+    }
+
 
 
     console.log('chartYears:', chartYears);
     console.log('chartStats:', chartStats);
 
-    graphicConfig = getBarChatInfo(
+    const previewGraphic = getBarChatInfo(
       unifiedDataCounts,
       chartYears,
       chartStats,
-      showStatistics,
+      true, // força calcular estatísticas aqui
       end,
       init,
       xTitle,
@@ -213,6 +259,25 @@ const DataGraph = ({
       areaData,
       isUnifiedChart
     );
+    
+    // se tiver mais de uma label (barra), usa as estatísticas de verdade
+    const shouldShowStatistics = showStatistics && previewGraphic.data.labels.length > 1;
+    
+    // agora refaz com estatísticas reais (ou falsas)
+    graphicConfig = getBarChatInfo(
+      unifiedDataCounts,
+      chartYears,
+      chartStats,
+      shouldShowStatistics,
+      end,
+      init,
+      xTitle,
+      yTitle,
+      areaData,
+      isUnifiedChart
+    );
+    
+
 
     // console.log('graphicConfig:', graphicConfig);
 
