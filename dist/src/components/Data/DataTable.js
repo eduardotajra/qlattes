@@ -159,7 +159,14 @@ const DataTable = ({
     .concat(Object.keys(percentages).map(item => ""));
 
   // Create footer from data arrays
-  const footer = ["Total"].concat(Object.values(totalStats).map(number => roundNumber(number)));
+  const footer = ["Total"].concat(
+    Object.entries(totalStats).map(([key, number]) => {
+      if (key === '%A') return roundNumber(totalStats['#A'] / totalStats['#all'] * 100);
+      if (key === '%B') return roundNumber(totalStats['#B'] / totalStats['#all'] * 100);
+      return roundNumber(number);
+    })
+  );
+  
 
 
   // Função para calcular a média de um array
@@ -196,16 +203,20 @@ const DataTable = ({
   
 
   // Set rows
-  const rows = years.map((year, index) =>
-    <React.Fragment>
-      <TableCell scope="row">{stats.year.length === 1 ? stats.year[0] : year}</TableCell>
-      {Object.values(qualis).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
-      {Object.values(totals).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
-      {Object.values(percentages).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
-    </React.Fragment>
-  ).reverse();
+  const rows = !unified
+  ? years.map((year, index) => (
+      <React.Fragment>
+        <TableCell scope="row">{year}</TableCell>
+        {Object.values(qualis).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
+        {Object.values(totals).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
+        {Object.values(percentages).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
+      </React.Fragment>
+    )).reverse()
+  : []; // ou seja, não mostra as linhas intermediárias
+
   
-  const shouldShowStatistics = showStatistics && (!unified || stats.year.length > 1);
+  const shouldShowStatistics = showStatistics && !unified && stats.year.length > 1;
+
 
   // Set Table Height
   const tableHeight = `${shouldShowStatistics ? Math.min(636, rows.length * 53 + 320) : Math.min(424, rows.length * 53 + 108)}px !important`;
@@ -261,7 +272,7 @@ const DataTable = ({
               </>);
             }}
             fixedFooterContent={() => {
-              const shouldShowStatistics = showStatistics && (!unified || stats.year.length > 1);
+              const shouldShowStatistics = showStatistics && !unified && stats.year.length > 1;
 
               return ( <>
                 <TableRow

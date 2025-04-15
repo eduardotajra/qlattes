@@ -710,6 +710,27 @@ export function getBarChatInfo(
 
   console.log('dataCounts:', dataCounts);
 
+  if (isUnifiedChart) {
+    const sortedKeys = Object.keys(dataCounts)
+      .map((name) => {
+        const totalSum = Object.values(dataCounts[name])
+          .flatMap(obj => Object.values(obj))
+          .reduce((acc, val) => acc + val, 0);
+        return { name, totalSum };
+      })
+      .sort((a, b) => a.totalSum - b.totalSum)
+      .map((item) => item.name);
+  
+    // Recria os dataCounts ordenados
+    const sortedDataCounts = {};
+    sortedKeys.forEach((key) => {
+      sortedDataCounts[key] = dataCounts[key];
+    });
+  
+    dataCounts = sortedDataCounts;
+  }
+  
+
   let datasets = [];
   const dataKeys = Object.keys(dataCounts);
 

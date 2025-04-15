@@ -102,16 +102,7 @@ const Index = ({
   }, [selectedCVs, viewType]);
   
 
-  function handleViewTypeChange(value) {
-    if (
-      (value === "scoreTableView" || value === "scoreGraphicView") &&
-      Object.keys(areaData).length === 0
-    ) {
-      alert(
-        `Para visualizar a pontuação Qualis, é necessário selecionar uma Área do Conhecimento.`
-      );
-      return;
-    }
+  const handleViewTypeChange = async (value) => {
   
     if (value === "qualisGraphicParetoCVView" && !canShowParetoCVView) {
       alert(
@@ -120,60 +111,70 @@ const Index = ({
       return;
     }
   
+    if (!["scoreTable", "scoreGraphic"].includes(value)) {
+      setArea("undefined");
+      setAreaData({});
+      await chrome.storage.local.set({ area_data: {} });
+    }
+  
     setViewType(value);
-  }
+  };
+  
+  
   
   
 
   
 
   const handleAreaChange = async (event) => {
-    const prevArea = area;
-    const newArea = event.target.value;
-    if (newArea === "undefined") {
-      await chrome.storage.local.set({
-        area_data: {
+  const prevArea = area;
+  const newArea = event.target.value;
+
+  if (newArea === "undefined") {
+    const noAreaData = {
+      area: newArea,
+      scores: {},
+      label: "Sem Área do Conhecimento",
+      source: {},
+      base_year: "",
+    };
+
+    await chrome.storage.local.set({ area_data: noAreaData });
+    setArea("undefined");
+    setAreaData(noAreaData);
+    updateArea();
+
+  } else {
+    const match = allQualisScores.find((elem) =>
+      Object.keys(elem.areas).includes(newArea)
+    );
+
+    if (match) {
+      if (Object.keys(match.areas[newArea].scores).length > 0) {
+        const currAreaData = {
           area: newArea,
-          scores: {},
-          label: "Sem Área do Conhecimento",
-          source: {},
-          base_year: "",
-        },
-      });
-      updateArea();
-      if (viewType === "scoreTableView" || viewType === "scoreGraphicView") {
+          ...match.areas[newArea],
+        };
+        setAreaData(currAreaData);
+        setArea(newArea);
+        await chrome.storage.local.set({ area_data: currAreaData });
+        updateArea();
+      } else {
         alert(
-          `Para visualizar a pontuação Qualis, é necessário selecionar uma Área do Conhecimento.`
+          "Esta Área do Conhecimento não definiu pontuação específica para os estratos do Qualis."
         );
-        setViewType("");
-      }
-    } else {
-      var match = allQualisScores.find((elem) =>
-        Object.keys(elem.areas).includes(newArea)
-      );
-      if (match) {
-        if (Object.keys(match.areas[newArea].scores).length > 0) {
-          const currAreaData = {
-            area: newArea,
-            ...match.areas[newArea],
-          };
-          setAreaData(currAreaData);
-          setArea(newArea);
-          await chrome.storage.local.set({ area_data: currAreaData });
-          updateArea();
+
+        // Reverter seleção visualmente no <select>
+        if (prevArea !== "") {
+          event.target.value = prevArea;
         } else {
-          alert(
-            "Esta Área do Conhecimento não definiu pontuação específica para os estratos do Qualis."
-          );
-          if (prevArea !== "") {
-            event.target.value = prevArea;
-          } else {
-            event.target.selectedIndex = 0;
-          }
+          event.target.selectedIndex = 0;
         }
       }
     }
-  };
+  }
+};
+
 
   function handleSelectedPeriod(value) {
     setEndYearInput(endYear);
@@ -443,17 +444,31 @@ const Index = ({
   // Função auxiliar para consolidar os dados dos anos
   function unifyStats(stats) {
     if (!stats || !stats.year || stats.year.length === 0) return stats;
-
+  
     const unifiedStats = {};
-    unifiedStats.year = ["Todos os anos"];
-
+    unifiedStats.year = [""];
+  
     Object.keys(stats).forEach((key) => {
       if (key === "year") return;
-      unifiedStats[key] = [stats[key].reduce((acc, val) => acc + val, 0)];
+  
+      if (key === "A" || key === "B") {
+        const totalA = stats["A"] ? stats["A"].reduce((acc, val) => acc + val, 0) : 0;
+        const totalB = stats["B"] ? stats["B"].reduce((acc, val) => acc + val, 0) : 0;
+        const total = totalA + totalB;
+  
+        if (total === 0) {
+          unifiedStats[key] = [0];
+        } else {
+          unifiedStats[key] = [((key === "A" ? totalA : totalB) / total) * 100];
+        }
+      } else {
+        unifiedStats[key] = [stats[key].reduce((acc, val) => acc + val, 0)];
+      }
     });
-
+  
     return unifiedStats;
   }
+  
 
 
   
@@ -589,47 +604,6 @@ const Index = ({
           {showAll && (
             <>
               <FormGroup className="w-100">
-                {/* área do conhecimento */}
-                <InputGroup
-                  className="input-group-alternative mt-3"
-                  style={{
-                    marginRight: "15px",
-                    border: "none",
-                    backgroundColor: "white",
-                  }}
-                >
-                  <InputGroupAddon addonType="prepend">
-                    <InputGroupText>
-                      <i className="fas fa-graduation-cap" style={{ color: "#415e98" }} />
-                    </InputGroupText>
-                  </InputGroupAddon>
-                  <Input
-                    id="exampleSelect"
-                    name="select"
-                    type="select"
-                    className="input-group-alternative"
-                    style={{ marginRight: "15px", color: "#415e98" }}
-                    value={area}
-                    onChange={(e) => handleAreaChange(e)}
-                    defaultValue={area}
-                  >
-                    <option value="" disabled={true} hidden={true}>
-                      Selecione uma Área do Conhecimento
-                    </option>
-                    <option value="undefined" hidden={true}>
-                      Sem Área do Conhecimento
-                    </option>
-                    {allQualisScores.map((greatArea) => (
-                      <optgroup label={greatArea.label} style={{ color: "black" }}>
-                        {Object.keys(greatArea.areas).map((a) => (
-                          <option key={a} value={a}>
-                            {greatArea.areas[a].label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </Input>
-                </InputGroup>
                 {/* View type */}
                 <InputGroup
                   className="input-group-alternative mt-3"
@@ -644,6 +618,7 @@ const Index = ({
                       <i className="fas fa-chart-bar" style={{ color: "#415e98" }} />
                     </InputGroupText>
                   </InputGroupAddon>
+
                   <Input
                     id="exampleSelect"
                     name="select"
@@ -654,27 +629,19 @@ const Index = ({
                     onChange={(e) => handleViewTypeChange(e.target.value)}
                     defaultValue=""
                   >
-                    <option value="" disabled={true} hidden={true}>
+                    <option value="" disabled hidden>
                       Selecione uma visualização
                     </option>
                     <optgroup label="Classificação" style={{ color: "black" }}>
-                      <option value="qualisTable">
-                        Tabela de classificação Qualis
-                      </option>
-                      <option value="qualisGraphic">
-                        Gráfico de classificação Qualis
-                      </option>
+                      <option value="qualisTable">Tabela de classificação Qualis</option>
+                      <option value="qualisGraphic">Gráfico de classificação Qualis</option>
                       <option value="qualisGraphicParetoCVView">
                         Gráfico de percentual de produção Qualis (por CV)
                       </option>
                     </optgroup>
                     <optgroup label="Pontuação" style={{ color: "black" }}>
-                      <option disabled={!(areaData && areaData.scores)} value="scoreTable">
-                        Tabela de pontuação Qualis
-                      </option>
-                      <option disabled={!(areaData && areaData.scores)} value="scoreGraphic">
-                        Gráfico de pontuação Qualis
-                      </option>
+                      <option value="scoreTable">Tabela de pontuação Qualis</option>
+                      <option value="scoreGraphic">Gráfico de pontuação Qualis</option>
                     </optgroup>
                     <optgroup label="Publicações" style={{ color: "black" }}>
                       <option value="top5View">5 melhores artigos</option>
@@ -682,6 +649,54 @@ const Index = ({
                     </optgroup>
                   </Input>
                 </InputGroup>
+
+                {/* Área do conhecimento só aparece se for scoreTable ou scoreGraphic */}
+                {["scoreTable", "scoreGraphic"].includes(viewType) && (
+                  <InputGroup
+                    className="input-group-alternative mt-3"
+                    style={{
+                      marginRight: "15px",
+                      border: "none",
+                      backgroundColor: "white",
+                    }}
+                  >
+                    <InputGroupAddon addonType="prepend">
+                      <InputGroupText>
+                        <i className="fas fa-graduation-cap" style={{ color: "#415e98" }} />
+                      </InputGroupText>
+                    </InputGroupAddon>
+
+                    <Input
+                      id="exampleSelect"
+                      name="select"
+                      type="select"
+                      className="input-group-alternative"
+                      style={{
+                        marginRight: "15px",
+                        color: "#415e98",
+                        backgroundColor: "white",
+                        fontWeight: "normal",
+                      }}
+                      value={area}
+                      onChange={(e) => handleAreaChange(e)}
+                      defaultValue={area}
+                    >
+                      <option value="undefined" style={{ color: "black" }}>
+                        Sem Área do Conhecimento
+                      </option>
+                      {allQualisScores.map((greatArea) => (
+                        <optgroup key={greatArea.label} label={greatArea.label} style={{ color: "black" }}>
+                          {Object.keys(greatArea.areas).map((a) => (
+                            <option key={a} value={a}>
+                              {greatArea.areas[a].label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </Input>
+                  </InputGroup>
+                )}
+
                 {/* Init year */}
                 <InputGroup
                   className="input-group-alternative mt-3"
@@ -780,7 +795,10 @@ const Index = ({
                   </Input>
                 </InputGroup>
                 {/* Statistics */}
-                {["qualisTable", "qualisGraphic", "scoreTable", "scoreGraphic"].includes(viewType) && (
+                {(
+                  ["qualisTable", "qualisGraphic"].includes(viewType) ||
+                  (["scoreTable", "scoreGraphic"].includes(viewType) && area !== "undefined")
+                ) && (
                   
                   <InputGroupText
                     className="mt-3 ml-4"
@@ -790,29 +808,37 @@ const Index = ({
                       addon
                       aria-label="Checkbox for following text input"
                       type="checkbox"
-                      value={showStatistics}
-                      onChange={(e) => setShowStatistics(!showStatistics)}
+                      disabled={showUnificado}
+                      checked={showStatistics && !showUnificado}
+                      onChange={(e) => {
+                        if (!showUnificado) setShowStatistics(!showStatistics);
+                      }}
                     />
                     <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
                       Exibir estatísticas
                     </Label>
-                    <Input
-                      type="checkbox"
-                      checked={showConsolidado}
-                      onChange={() => {
-                        const novoValor = !showConsolidado;
-                        setShowConsolidado(novoValor);
-                        setShowAgrupado(false);
-                        setShowIndividual(false);
-                        setViewType(viewType);
-                        if (!novoValor && !showIndividual && !showAgrupado) {
-                          setShowAgrupado(true);
-                        }
-                      }}
-                    />
-                    <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
-                      Consolidar dados de todos os currículos
-                    </Label>
+                    {(selectedCVs.filter((item) => item.groupType === "Grupos").length > 1 ||
+                      uniquePeople.size > 1) && (
+                      <>
+                        <Input
+                          type="checkbox"
+                          checked={showConsolidado}
+                          onChange={() => {
+                            const novoValor = !showConsolidado;
+                            setShowConsolidado(novoValor);
+                            setShowAgrupado(false);
+                            setShowIndividual(false);
+                            setViewType(viewType);
+                            if (!novoValor && !showIndividual && !showAgrupado) {
+                              setShowAgrupado(true);
+                            }
+                          }}
+                        />
+                        <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
+                          Consolidar dados de todos os currículos
+                        </Label>
+                      </>
+                    )}
 
                     {hasGroupSelected && (
                       <>
@@ -861,222 +887,231 @@ const Index = ({
       <Container className="mb-5" fluid>
         {showAll && (
           <>
-            {viewType === "qualisTable" && (
+            {["scoreTable", "scoreGraphic"].includes(viewType) && area === "undefined" ? (
+              // não mostra nada até escolher área
+              <div style={{ color: "#415e98", fontWeight: "bold", marginTop: "1rem" }}>
+                Selecione uma Área do Conhecimento para visualizar os dados de pontuação.
+              </div>
+            ) : (
               <>
-                {showConsolidado ? (
-                  <DataTable
-                    tableName="Todos os currículos"
+                {viewType === "qualisTable" && (
+                  <>
+                    {showConsolidado ? (
+                      <DataTable
+                        tableName="Todos os currículos"
+                        init={initYearInput}
+                        end={endYearInput}
+                        stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
+                        showStatistics={showStatistics}
+                        unified={showUnificado}
+                      />
+                    ) : showIndividual ? (
+                      Object.entries(individualStats).map(([name, stat]) => (
+                        <DataTable
+                          key={name}
+                          tableName={name}
+                          init={initYearInput}
+                          end={endYearInput}
+                          stats={showUnificado ? unifyStats(stat) : stat}
+                          showStatistics={showStatistics}
+                          areaData={areaData}
+                          unified={showUnificado}
+                        />
+                      ))
+                    ) : showAgrupado ? (
+                      Object.entries(groupStats).map(([name, stat]) => (
+                        <DataTable
+                          key={name}
+                          tableName={name}
+                          init={initYearInput}
+                          end={endYearInput}
+                          stats={showUnificado ? unifyStats(stat) : stat}
+                          showStatistics={showStatistics}
+                          areaData={areaData}
+                          unified={showUnificado}
+                        />
+                      ))
+                    ) : (
+                      <>
+                        {Object.entries(groupStats).map(([name, stat]) => (
+                          <DataTable
+                            key={name}
+                            tableName={name}
+                            init={initYearInput}
+                            end={endYearInput}
+                            stats={showUnificado ? unifyStats(stat) : stat}
+                            showStatistics={showStatistics}
+                            areaData={areaData}
+                            unified={showUnificado}
+                          />
+                        ))}
+                        {Object.entries(individualStats).map(([name, stat]) => (
+                          <DataTable
+                            key={name}
+                            tableName={name}
+                            init={initYearInput}
+                            end={endYearInput}
+                            stats={showUnificado ? unifyStats(stat) : stat}
+                            showStatistics={showStatistics}
+                            areaData={areaData}
+                            unified={showUnificado}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+
+                {viewType === "qualisGraphic" && (
+                  <DataGraph
+                    graphName="Gráfico de classificação Qualis"
                     init={initYearInput}
                     end={endYearInput}
-                    stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
+                    stats={
+                      showConsolidado
+                        ? { "Todos os currículos": stats?.__all }
+                        : showIndividual
+                        ? individualStats
+                        : showAgrupado
+                        ? groupStats
+                        : {} // <---- aqui também
+                    }                
+                    qualisFilter={qualisFilter}
                     showStatistics={showStatistics}
-                    areaData={areaData}
-                    unified={showUnificado}
+                    isUnifiedChart={showUnificado}
+                    showConsolidado={showConsolidado}      // << NOVO
+                    selectedCVs={selectedCVs}  
                   />
-                ) : showIndividual ? (
-                  Object.entries(individualStats).map(([name, stat]) => (
-                    <DataTable
-                      key={name}
-                      tableName={name}
-                      init={initYearInput}
-                      end={endYearInput}
-                      stats={showUnificado ? unifyStats(stat) : stat}
-                      showStatistics={showStatistics}
-                      areaData={areaData}
-                      unified={showUnificado}
-                    />
-                  ))
-                ) : showAgrupado ? (
-                  Object.entries(groupStats).map(([name, stat]) => (
-                    <DataTable
-                      key={name}
-                      tableName={name}
-                      init={initYearInput}
-                      end={endYearInput}
-                      stats={showUnificado ? unifyStats(stat) : stat}
-                      showStatistics={showStatistics}
-                      areaData={areaData}
-                      unified={showUnificado}
-                    />
-                  ))
-                ) : (
+                )}
+
+                {viewType === "qualisGraphicParetoCVView" && (
+                  <DataGraph
+                    graphName="Gráfico de percentual de produção Qualis (por CV)"
+                    init={initYearInput}
+                    end={endYearInput}
+                    stats={individualStats}
+                    qualisFilter={qualisFilter}
+                    showStatistics={showStatistics}
+                    isUnifiedChart={true}
+                    isParetoChart={true}
+                  />
+                )}
+                {viewType === "scoreTable" && (
                   <>
-                    {Object.entries(groupStats).map(([name, stat]) => (
+                    {showConsolidado ? (
                       <DataTable
-                        key={name}
-                        tableName={name}
+                        tableName="Tabela de pontuação Qualis"
                         init={initYearInput}
                         end={endYearInput}
-                        stats={showUnificado ? unifyStats(stat) : stat}
+                        stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
                         showStatistics={showStatistics}
-                        areaData={areaData}
-                        unified={showUnificado}
+                        areaData={viewType.includes("score") ? areaData : undefined}
                       />
-                    ))}
-                    {Object.entries(individualStats).map(([name, stat]) => (
-                      <DataTable
-                        key={name}
-                        tableName={name}
-                        init={initYearInput}
-                        end={endYearInput}
-                        stats={showUnificado ? unifyStats(stat) : stat}
-                        showStatistics={showStatistics}
-                        areaData={areaData}
-                        unified={showUnificado}
-                      />
-                    ))}
+                    ) : showIndividual ? (
+                      Object.entries(individualStats).map(([name, stat]) => (
+                        <DataTable
+                          key={name}
+                          tableName={name}
+                          init={initYearInput}
+                          end={endYearInput}
+                          stats={showUnificado ? unifyStats(stat) : stat}
+                          showStatistics={showStatistics}
+                          areaData={areaData}
+                        />
+                      ))
+                    ) : showAgrupado ? (
+                      Object.entries(groupStats).map(([name, stat]) => (
+                        <DataTable
+                          key={name}
+                          tableName={name}
+                          init={initYearInput}
+                          end={endYearInput}
+                          stats={showUnificado ? unifyStats(stat) : stat}
+                          showStatistics={showStatistics}
+                          areaData={areaData}
+                        />
+                      ))
+                    ) : (
+                      <>
+                        {Object.entries(groupStats).map(([name, stat]) => (
+                          <DataTable
+                            key={name}
+                            tableName={name}
+                            init={initYearInput}
+                            end={endYearInput}
+                            stats={showUnificado ? unifyStats(stat) : stat}
+                            showStatistics={showStatistics}
+                            areaData={areaData}
+                          />
+                        ))}
+                        {Object.entries(individualStats).map(([name, stat]) => (
+                          <DataTable
+                            key={name}
+                            tableName={name}
+                            init={initYearInput}
+                            end={endYearInput}
+                            stats={showUnificado ? unifyStats(stat) : stat}
+                            showStatistics={showStatistics}
+                            areaData={areaData}
+                          />
+                        ))}
+                      </>
+                    )}
                   </>
+                )}
+
+
+                {viewType === "scoreGraphic" && (
+                  <DataGraph
+                    graphName="Gráfico de pontuação Qualis"
+                    init={initYearInput}
+                    end={endYearInput}
+                    stats={
+                      showConsolidado
+                        ? { "Todos os currículos": stats?.__all }
+                        : showIndividual
+                        ? individualStats
+                        : showAgrupado
+                        ? groupStats
+                        : {} // <---- aqui também
+                    }
+                    
+                    
+                    qualisFilter={qualisFilter}
+                    showStatistics={showStatistics}
+                    isUnifiedChart={showUnificado}
+                    areaData={areaData}
+                    showConsolidado={showConsolidado}      // << NOVO
+                    selectedCVs={selectedCVs}  
+                  />
+                )}
+              
+                {viewType === "top5View" && (
+                  <TopTable
+                    tableName="5 melhores publicações"
+                    topN={5}
+                    init={initYearInput}
+                    end={endYearInput}
+                    pubInfo={pubInfo}
+                  />
+                )}
+
+                {viewType === "top10View" && (
+                  <TopTable
+                    tableName="10 melhores publicações"
+                    topN={10}
+                    init={initYearInput}
+                    end={endYearInput}
+                    pubInfo={pubInfo}
+                  />
                 )}
               </>
             )}
-
-            {viewType === "qualisGraphic" && (
-              <DataGraph
-                graphName="Gráfico de classificação Qualis"
-                init={initYearInput}
-                end={endYearInput}
-                stats={
-                  showConsolidado
-                    ? { "Todos os currículos": stats?.__all }
-                    : showIndividual
-                    ? individualStats
-                    : showAgrupado
-                    ? groupStats
-                    : {} // <---- aqui também
-                }                
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-                isUnifiedChart={showUnificado}
-                showConsolidado={showConsolidado}      // << NOVO
-                selectedCVs={selectedCVs}  
-              />
-            )}
-
-            {viewType === "qualisGraphicParetoCVView" && (
-              <DataGraph
-                graphName="Gráfico de percentual de produção Qualis (por CV)"
-                init={initYearInput}
-                end={endYearInput}
-                stats={individualStats}
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-                isUnifiedChart={true}
-                isParetoChart={true}
-              />
-            )}
-            {viewType === "scoreTable" && (
-              <>
-                {showConsolidado ? (
-                  <DataTable
-                    tableName="Tabela de pontuação Qualis"
-                    init={initYearInput}
-                    end={endYearInput}
-                    stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
-                    showStatistics={showStatistics}
-                    areaData={areaData}
-                  />
-                ) : showIndividual ? (
-                  Object.entries(individualStats).map(([name, stat]) => (
-                    <DataTable
-                      key={name}
-                      tableName={name}
-                      init={initYearInput}
-                      end={endYearInput}
-                      stats={showUnificado ? unifyStats(stat) : stat}
-                      showStatistics={showStatistics}
-                      areaData={areaData}
-                    />
-                  ))
-                ) : showAgrupado ? (
-                  Object.entries(groupStats).map(([name, stat]) => (
-                    <DataTable
-                      key={name}
-                      tableName={name}
-                      init={initYearInput}
-                      end={endYearInput}
-                      stats={showUnificado ? unifyStats(stat) : stat}
-                      showStatistics={showStatistics}
-                      areaData={areaData}
-                    />
-                  ))
-                ) : (
-                  <>
-                    {Object.entries(groupStats).map(([name, stat]) => (
-                      <DataTable
-                        key={name}
-                        tableName={name}
-                        init={initYearInput}
-                        end={endYearInput}
-                        stats={showUnificado ? unifyStats(stat) : stat}
-                        showStatistics={showStatistics}
-                        areaData={areaData}
-                      />
-                    ))}
-                    {Object.entries(individualStats).map(([name, stat]) => (
-                      <DataTable
-                        key={name}
-                        tableName={name}
-                        init={initYearInput}
-                        end={endYearInput}
-                        stats={showUnificado ? unifyStats(stat) : stat}
-                        showStatistics={showStatistics}
-                        areaData={areaData}
-                      />
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-
-
-            {viewType === "scoreGraphic" && (
-              <DataGraph
-                graphName="Gráfico de pontuação Qualis"
-                init={initYearInput}
-                end={endYearInput}
-                stats={
-                  showConsolidado
-                    ? { "Todos os currículos": stats?.__all }
-                    : showIndividual
-                    ? individualStats
-                    : showAgrupado
-                    ? groupStats
-                    : {} // <---- aqui também
-                }
-                
-                
-                qualisFilter={qualisFilter}
-                showStatistics={showStatistics}
-                isUnifiedChart={showUnificado}
-                areaData={areaData}
-                showConsolidado={showConsolidado}      // << NOVO
-                selectedCVs={selectedCVs}  
-              />
-            )}
-          
-            {viewType === "top5View" && (
-              <TopTable
-                tableName="5 melhores publicações"
-                topN={5}
-                init={initYearInput}
-                end={endYearInput}
-                pubInfo={pubInfo}
-              />
-            )}
-
-            {viewType === "top10View" && (
-              <TopTable
-                tableName="10 melhores publicações"
-                topN={10}
-                init={initYearInput}
-                end={endYearInput}
-                pubInfo={pubInfo}
-              />
-            )}
-
           </>
         )}
-        {areaData?.scores && viewType.includes("score") && (
+  
+
+        {areaData?.scores && Object.keys(areaData.scores).length > 0 && viewType.includes("score") && (
           <div className="mt-1">
             Fonte da pontuação:{" "}
             <a

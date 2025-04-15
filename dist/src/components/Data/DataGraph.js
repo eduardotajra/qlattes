@@ -248,19 +248,6 @@ const DataGraph = ({
 
     console.log('chartYears:', chartYears);
     console.log('chartStats:', chartStats);
-
-    const previewGraphic = getBarChatInfo(
-      unifiedDataCounts,
-      chartYears,
-      chartStats,
-      true, // força calcular estatísticas aqui
-      end,
-      init,
-      xTitle,
-      yTitle,
-      areaData,
-      isUnifiedChart
-    );
     
     // se tiver mais de uma label (barra), usa as estatísticas de verdade
     // Conta quantas colunas (labels) têm pelo menos um valor > 0 em qualquer dataset
