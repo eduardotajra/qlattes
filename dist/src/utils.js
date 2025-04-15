@@ -542,21 +542,20 @@ export function getStatisticsAnnotations(
   totalStats,
   showStatistics,
   end,
-  init
+  init,
+  isUnifiedChart
 ) {
   console.log("getStatisticsAnnotations chamado com:", totalStats);
 
   const lineAnnotations = [];
 
-  if (showStatistics && end - init > 0) {
+  if (showStatistics && end - init >= 0) {
     totalStats.tot.yearList = totalStats.tot.yearList.map((year) =>
       Number(year)
     );
-    // create mean line annotation
-    const mean = arrayMean(totalStats.tot.countList).toFixed(2);
-    console.log(totalStats.tot.countList);
-    console.log(mean);
 
+    // Média
+    const mean = arrayMean(totalStats.tot.countList).toFixed(2);
     lineAnnotations.push({
       id: 'mean',
       type: 'line',
@@ -571,18 +570,14 @@ export function getStatisticsAnnotations(
         position: 'start',
         padding: 4,
         backgroundColor: 'rgba(44, 76, 140, 0.7)',
-        font: {
-          size: 11,
-        },
+        font: { size: 11 },
         z: 10,
         display: true,
       },
     });
 
-    // create median line annotation
+    // Mediana
     const median = arrayMedian(totalStats.tot.countList).toFixed(2);
-    console.log(median);
-
     lineAnnotations.push({
       id: 'median',
       type: 'line',
@@ -597,69 +592,62 @@ export function getStatisticsAnnotations(
         position: '50%',
         padding: 4,
         backgroundColor: 'rgba(44, 76, 140, 0.7)',
-        font: {
-          size: 11,
-        },
+        font: { size: 11 },
         z: 10,
         display: true,
       },
     });
 
-    // get max counts in totalStats
-    const maxCount = arrayMax(totalStats.tot.countList);
+    // Tendência (somente se não for unificado e houver mais de um ano)
+    if (!isUnifiedChart && init !== end) {
+      const maxCount = arrayMax(totalStats.tot.countList);
+      const regression = linearRegression(
+        totalStats.tot.yearList,
+        totalStats.tot.countList
+      );
 
-    // create trend line annotation
-    const regression = linearRegression(
-      totalStats.tot.yearList,
-      totalStats.tot.countList
-    );
-    const minPoint = getBoundedTrendPoint(
-      regression,
-      init,
-      totalStats.tot.yearList.slice(),
-      {
-        min: 0,
-        max: maxCount,
-      }
-    );
-    const maxPoint = getBoundedTrendPoint(
-      regression,
-      end,
-      totalStats.tot.yearList.slice(),
-      {
-        min: 0,
-        max: maxCount,
-      }
-    );
-    lineAnnotations.push({
-      id: 'trend',
-      type: 'line',
-      borderColor: '#2c4c8c',
-      xMin: minPoint.x,
-      xMax: maxPoint.x,
-      xScaleID: 'x',
-      yMin: minPoint.y.toFixed(2),
-      yMax: maxPoint.y.toFixed(2),
-      yScaleID: 'y',
-      borderWidth: 1,
-      borderDash: [2, 2],
-      label: {
-        content: 'Tendência ' + regression.slope.toFixed(2),
-        position: 'end',
-        padding: 4,
-        backgroundColor: 'rgba(44, 76, 140, 0.7)', // 'rgba(0, 0, 0, 0.7)',
-        font: {
-          size: 11,
+      const minPoint = getBoundedTrendPoint(
+        regression,
+        init,
+        totalStats.tot.yearList.slice(),
+        { min: 0, max: maxCount }
+      );
+
+      const maxPoint = getBoundedTrendPoint(
+        regression,
+        end,
+        totalStats.tot.yearList.slice(),
+        { min: 0, max: maxCount }
+      );
+
+      lineAnnotations.push({
+        id: 'trend',
+        type: 'line',
+        borderColor: '#2c4c8c',
+        xMin: minPoint.x,
+        xMax: maxPoint.x,
+        xScaleID: 'x',
+        yMin: minPoint.y.toFixed(2),
+        yMax: maxPoint.y.toFixed(2),
+        yScaleID: 'y',
+        borderWidth: 1,
+        borderDash: [2, 2],
+        label: {
+          content: 'Tendência ' + regression.slope.toFixed(2),
+          position: 'end',
+          padding: 4,
+          backgroundColor: 'rgba(44, 76, 140, 0.7)',
+          font: { size: 11 },
+          z: 10,
+          display: true,
         },
-        z: 10,
-        display: true,
-      },
-    });
-    console.log(regression.slope);
+      });
+    }
   }
 
   return lineAnnotations;
 }
+
 
 export function getBarChatInfo(
   dataCounts,
@@ -734,7 +722,7 @@ export function getBarChatInfo(
         Math.floor(index / baseColorPalette.length) % fillPatterns.length
       ];
 
-    const stackName = name === '__all' ? 'Todos os CVs' : name;
+    const stackName = name === '__all' ? 'Todos os currículos' : name;
 
     // Decide which alpha map to use (depends on 'scores' or not)
     const labelLightenMap =
@@ -812,8 +800,11 @@ export function getBarChatInfo(
     totalStats,
     showStatistics,
     end,
-    init
+    init,
+    isUnifiedChart
   );
+  
+
   const options = {
     plugins: {
       annotation: {
@@ -1167,7 +1158,7 @@ export function filterDataCounts(inputDataCounts, catFilters) {
 }
 
 function abbreviatePortugueseName(fullName) {
-  if (fullName === 'Todos os currículos' || fullName === "Todos os CVs") {
+  if (fullName === 'Todos os currículos' || fullName === "Todos os currículos") {
     return fullName;
   }
   // Common bridging words in Portuguese

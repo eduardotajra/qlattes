@@ -937,7 +937,7 @@ const Index = ({
                 end={endYearInput}
                 stats={
                   showConsolidado
-                    ? { "Todos os CV's": stats?.__all }
+                    ? { "Todos os currículos": stats?.__all }
                     : showIndividual
                     ? individualStats
                     : showAgrupado
@@ -947,6 +947,8 @@ const Index = ({
                 qualisFilter={qualisFilter}
                 showStatistics={showStatistics}
                 isUnifiedChart={showUnificado}
+                showConsolidado={showConsolidado}      // << NOVO
+                selectedCVs={selectedCVs}  
               />
             )}
 
@@ -1034,7 +1036,7 @@ const Index = ({
                 end={endYearInput}
                 stats={
                   showConsolidado
-                    ? { "Todos os CV's": stats?.__all }
+                    ? { "Todos os currículos": stats?.__all }
                     : showIndividual
                     ? individualStats
                     : showAgrupado
@@ -1047,6 +1049,8 @@ const Index = ({
                 showStatistics={showStatistics}
                 isUnifiedChart={showUnificado}
                 areaData={areaData}
+                showConsolidado={showConsolidado}      // << NOVO
+                selectedCVs={selectedCVs}  
               />
             )}
           

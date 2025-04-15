@@ -47,6 +47,8 @@ const DataGraph = ({
   areaData,
   isUnifiedChart = false,
   isParetoChart = false,
+  showConsolidado = false,
+  selectedCVs = [],
 }) => {
   console.log('stats:', stats);
 
@@ -235,7 +237,7 @@ const DataGraph = ({
     const chartYears = stats[Object.keys(stats)[0]].year;
     let chartStats;
 
-    if (Object.keys(totalStats).length > 1 && (isUnifiedChart || graphName.includes("Todos os CVs"))) {
+    if (Object.keys(totalStats).length > 1 && (isUnifiedChart || graphName.includes("Todos os currículos"))) {
       chartStats = unifyTotalStats(totalStats);
     } else {
       const firstKey = Object.keys(totalStats)[0];
@@ -260,23 +262,24 @@ const DataGraph = ({
       isUnifiedChart
     );
     
-    const visibleColumnsWithData = previewGraphic.data.labels.filter((_, colIndex) => {
-      const totalValue = previewGraphic.data.datasets.reduce((acc, dataset) => {
-        const val = dataset.data[colIndex];
-        return acc + (typeof val === "number" ? val : 0);
-      }, 0);
-      return totalValue > 0;
-    });
-    
     // se tiver mais de uma label (barra), usa as estatísticas de verdade
     // Conta quantas colunas (labels) têm pelo menos um valor > 0 em qualquer dataset
-    const shouldShowStatistics = showStatistics && (
-      isUnifiedChart
-        ? (
-            previewGraphic.data.datasets.length > 1 ||
-            previewGraphic.data.datasets[0].data.filter(val => typeof val === 'number' && val > 0).length > 1
-          )
-        : visibleColumnsWithData.length >= 2
+    const onlyGroupsSelected = selectedCVs.every(
+      (item) => item.groupType === "Grupos"
+    );
+    
+    const allGroupsHaveOneAuthor = selectedCVs.every(
+      (item) => item.groupType === "Grupos" && item.authors.length === 1
+    );
+    
+    const shouldShowStatistics = (
+      showStatistics &&
+      chartYears.length > 1 &&
+      !(
+        (showConsolidado && isUnifiedChart) ||
+        (selectedCVs.length === 1 && isUnifiedChart) ||
+        (onlyGroupsSelected && allGroupsHaveOneAuthor && isUnifiedChart)
+      )
     );
     
 

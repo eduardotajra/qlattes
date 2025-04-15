@@ -30,7 +30,8 @@ const DataTable = ({
   end,
   stats,
   showStatistics,
-  areaData
+  areaData,
+  unified
 }) => {
   if (!stats || !stats.year || !Array.isArray(stats.year)) {
     console.error("stats.year está indefinido ou mal formatado", stats);
@@ -204,14 +205,16 @@ const DataTable = ({
     </React.Fragment>
   ).reverse();
   
+  const shouldShowStatistics = showStatistics && (!unified || stats.year.length > 1);
 
   // Set Table Height
-  const tableHeight = `${showStatistics ? Math.min(636, rows.length * 53 + 320) : Math.min(424, rows.length * 53 + 108)}px !important`;
+  const tableHeight = `${shouldShowStatistics ? Math.min(636, rows.length * 53 + 320) : Math.min(424, rows.length * 53 + 108)}px !important`;
 
+  
   return (
     <Row>
       <Col className="mb-5 mb-xl-0" xl="12">
-        <Card className="shadow">
+        <Card className="shadow" style={{ marginBottom: '2rem' }}>
           <CardHeader className="border-0">
             <Row className="align-items-center">
               <div className="col">
@@ -258,6 +261,8 @@ const DataTable = ({
               </>);
             }}
             fixedFooterContent={() => {
+              const shouldShowStatistics = showStatistics && (!unified || stats.year.length > 1);
+
               return ( <>
                 <TableRow
                   sx={{
@@ -266,7 +271,7 @@ const DataTable = ({
                 >
                   {footer.map(item => <TableCell scope="col" style={{ borderBottom: 'none' }}>{item}</TableCell>)}
                 </TableRow>
-                {showStatistics && (<>
+                {shouldShowStatistics && (<>
                   <TableRow
                     sx={{
                       backgroundColor: '#F6F9FC',
