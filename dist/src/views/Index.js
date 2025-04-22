@@ -60,6 +60,11 @@ const Index = ({
   const [showAll, setShowAll] = React.useState(false);
   const [selectedPeriod, setSelectedPeriod] = React.useState("empty");
 
+  const [totalStatsFromGraph, setTotalStatsFromGraph] = React.useState({});
+  const [showAreaAlert, setShowAreaAlert] = React.useState(true);
+
+
+
 
   // useMemo para recalcular cvOptions sempre que authorsNameLink, groups ou refresh mudarem
   const [cvOptions, setCvOptions] = React.useState([]);
@@ -110,11 +115,12 @@ const Index = ({
       );
       return;
     }
-  
-    if (!["scoreTable", "scoreGraphic"].includes(value)) {
-      setArea("undefined");
-      setAreaData({});
-      await chrome.storage.local.set({ area_data: {} });
+    const isEnteringScoreView = ["scoreTable", "scoreGraphic"].includes(value);
+
+    if (isEnteringScoreView && (area === "undefined" || area == undefined)) {
+      setShowAreaAlert(true);
+    } else {
+      setShowAreaAlert(false);
     }
   
     setViewType(value);
@@ -129,8 +135,10 @@ const Index = ({
   const handleAreaChange = async (event) => {
   const prevArea = area;
   const newArea = event.target.value;
+  console.log("prevArea: ", prevArea)
+  console.log("newArea: ", newArea)
 
-  if (newArea === "undefined") {
+  if (newArea === "undefined" || newArea == undefined) {
     const noAreaData = {
       area: newArea,
       scores: {},
@@ -442,32 +450,49 @@ const Index = ({
   const canShowParetoCVView = totalSelectedPeople >= 2;
   
   // Função auxiliar para consolidar os dados dos anos
-  function unifyStats(stats) {
+  function unifyStats(stats, init, end) {
     if (!stats || !stats.year || stats.year.length === 0) return stats;
   
     const unifiedStats = {};
     unifiedStats.year = [""];
   
+    const yearIndices = stats.year
+      .map((y, i) => ({ year: y, index: i }))
+      .filter(({ year }) => year >= init && year <= end)
+      .map(({ index }) => index);
+  
     Object.keys(stats).forEach((key) => {
       if (key === "year") return;
   
       if (key === "A" || key === "B") {
-        const totalA = stats["A"] ? stats["A"].reduce((acc, val) => acc + val, 0) : 0;
-        const totalB = stats["B"] ? stats["B"].reduce((acc, val) => acc + val, 0) : 0;
+        const totalA = key === "A"
+          ? yearIndices.reduce((sum, i) => sum + (stats["A"]?.[i] || 0), 0)
+          : 0;
+        const totalB = key === "B"
+          ? yearIndices.reduce((sum, i) => sum + (stats["B"]?.[i] || 0), 0)
+          : 0;
+  
         const total = totalA + totalB;
   
         if (total === 0) {
           unifiedStats[key] = [0];
         } else {
-          unifiedStats[key] = [((key === "A" ? totalA : totalB) / total) * 100];
+          unifiedStats[key] = [
+            key === "A"
+              ? (totalA / total) * 100
+              : (totalB / total) * 100,
+          ];
         }
       } else {
-        unifiedStats[key] = [stats[key].reduce((acc, val) => acc + val, 0)];
+        unifiedStats[key] = [
+          yearIndices.reduce((sum, i) => sum + (stats[key]?.[i] || 0), 0),
+        ];
       }
     });
   
     return unifiedStats;
   }
+  
   
 
 
@@ -482,7 +507,7 @@ const Index = ({
             <InputGroup
               className="input-group-alternative"
               style={{
-                width: "500px",
+                width: "56.6em",
                 border: "none",
                 backgroundColor: "white",
               }}
@@ -534,12 +559,12 @@ const Index = ({
                 defaultValue={[]}
                 filterSelectedOptions
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Selecione um ou mais CV(s) ou grupo(s)" />
+                  <TextField {...params} placeholder="Selecione um ou mais currículos ou grupos" />
                 )}
                 noOptionsText="Não há CVs disponíveis"
                 sx={{
-                  width: "90%",
-                  "& .MuiButtonBase-root": { color: "#415e98" },
+                  width: "95%",
+                  "& .MuiButtonBase-root": { color: "#415e98"},
                   "& .MuiInputBase-input": { color: "#415e98" },
                   "& fieldset": { border: "none" },
                   "& .MuiInputBase-root > .MuiButtonBase-root": {
@@ -636,7 +661,7 @@ const Index = ({
                       <option value="qualisTable">Tabela de classificação Qualis</option>
                       <option value="qualisGraphic">Gráfico de classificação Qualis</option>
                       <option value="qualisGraphicParetoCVView">
-                        Gráfico de percentual de produção Qualis (por CV)
+                      Gráfico de percentual de produção
                       </option>
                     </optgroup>
                     <optgroup label="Pontuação" style={{ color: "black" }}>
@@ -681,7 +706,7 @@ const Index = ({
                       onChange={(e) => handleAreaChange(e)}
                       defaultValue={area}
                     >
-                      <option value="undefined" style={{ color: "black" }}>
+                      <option disabled="true" selected="true" hidden="true" value="undefined" style={{ color: "black" }}>
                         Sem Área do Conhecimento
                       </option>
                       {allQualisScores.map((greatArea) => (
@@ -780,7 +805,7 @@ const Index = ({
                       handleSelectedPeriod(e.target.value);
                     }}
                   >
-                    <option value="empty" style={{ color: "black" }}>
+                    <option disabled="true" selected="true" hidden="true" value="empty" style={{ color: "black" }}>
                       Selecione um período
                     </option>
                     <option value="last5" style={{ color: "black" }}>
@@ -790,16 +815,18 @@ const Index = ({
                       Últimos 10 anos
                     </option>
                     <option value="all" style={{ color: "black" }}>
-                      Todo o período do CV
+                      Todo o período do(s) currículo(s)
                     </option>
                   </Input>
                 </InputGroup>
-                {/* Statistics */}
-                {(
-                  ["qualisTable", "qualisGraphic"].includes(viewType) ||
-                  (["scoreTable", "scoreGraphic"].includes(viewType) && area !== "undefined")
-                ) && (
-                  
+              </FormGroup>
+
+              {/* Statistics */}
+              {(
+                ["qualisTable", "qualisGraphic"].includes(viewType) ||
+                (["scoreTable", "scoreGraphic"].includes(viewType) && area !== "undefined" && area != undefined)
+              ) && (
+                <FormGroup className="w-100">
                   <InputGroupText
                     className="mt-3 ml-4"
                     style={{ backgroundColor: "transparent", border: "none" }}
@@ -808,10 +835,10 @@ const Index = ({
                       addon
                       aria-label="Checkbox for following text input"
                       type="checkbox"
-                      disabled={showUnificado}
-                      checked={showStatistics && !showUnificado}
+                      disabled={showUnificado && Object.keys(totalStatsFromGraph).length <= 1}
+                      checked={showStatistics && ((showUnificado && Object.keys(totalStatsFromGraph).length > 1) || (!showUnificado))}
                       onChange={(e) => {
-                        if (!showUnificado) setShowStatistics(!showStatistics);
+                        if ((showUnificado && Object.keys(totalStatsFromGraph).length > 1) || (!showUnificado)) setShowStatistics(!showStatistics);
                       }}
                     />
                     <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
@@ -876,10 +903,9 @@ const Index = ({
                     <Label style={{ color: "#415e98" }} className="ml-2 mr-3">
                     Consolidar dados dos anos selecionados
                     </Label>
-
                   </InputGroupText>
-                )}
-              </FormGroup>
+                </FormGroup>
+              )}
             </>
           )}
         </Form>
@@ -887,11 +913,9 @@ const Index = ({
       <Container className="mb-5" fluid>
         {showAll && (
           <>
-            {["scoreTable", "scoreGraphic"].includes(viewType) && area === "undefined" ? (
+            {["scoreTable", "scoreGraphic"].includes(viewType) && showAreaAlert && (area === "undefined" || area == undefined )? (
               // não mostra nada até escolher área
-              <div style={{ color: "#415e98", fontWeight: "bold", marginTop: "1rem" }}>
-                Selecione uma Área do Conhecimento para visualizar os dados de pontuação.
-              </div>
+              alert("Selecione uma Área do Conhecimento para visualizar os dados de pontuação.")
             ) : (
               <>
                 {viewType === "qualisTable" && (
@@ -901,9 +925,10 @@ const Index = ({
                         tableName="Todos os currículos"
                         init={initYearInput}
                         end={endYearInput}
-                        stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
+                        stats={showUnificado ? unifyStats(stats?.__all, initYearInput, endYearInput) : stats?.__all}
                         showStatistics={showStatistics}
                         unified={showUnificado}
+                        type="Grupo"
                       />
                     ) : showIndividual ? (
                       Object.entries(individualStats).map(([name, stat]) => (
@@ -912,25 +937,32 @@ const Index = ({
                           tableName={name}
                           init={initYearInput}
                           end={endYearInput}
-                          stats={showUnificado ? unifyStats(stat) : stat}
+                          stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                           showStatistics={showStatistics}
                           areaData={areaData}
                           unified={showUnificado}
+                          type="Autor"
                         />
                       ))
                     ) : showAgrupado ? (
-                      Object.entries(groupStats).map(([name, stat]) => (
-                        <DataTable
-                          key={name}
-                          tableName={name}
-                          init={initYearInput}
-                          end={endYearInput}
-                          stats={showUnificado ? unifyStats(stat) : stat}
-                          showStatistics={showStatistics}
-                          areaData={areaData}
-                          unified={showUnificado}
-                        />
-                      ))
+                      Object.entries(groupStats).map(([name, stat]) => {
+                        const item = selectedCVs.find((cv) => cv.name === name);
+                        const type = item?.groupType === "Grupos" ? "Grupo" : "Autor";
+                    
+                        return (
+                          <DataTable
+                            key={name}
+                            tableName={name}
+                            init={initYearInput}
+                            end={endYearInput}
+                            stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
+                            showStatistics={showStatistics}
+                            areaData={areaData}
+                            unified={showUnificado}
+                            type={type}
+                          />
+                        );
+                      })
                     ) : (
                       <>
                         {Object.entries(groupStats).map(([name, stat]) => (
@@ -939,10 +971,11 @@ const Index = ({
                             tableName={name}
                             init={initYearInput}
                             end={endYearInput}
-                            stats={showUnificado ? unifyStats(stat) : stat}
+                            stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
                             unified={showUnificado}
+                            type="Grupo"
                           />
                         ))}
                         {Object.entries(individualStats).map(([name, stat]) => (
@@ -951,10 +984,11 @@ const Index = ({
                             tableName={name}
                             init={initYearInput}
                             end={endYearInput}
-                            stats={showUnificado ? unifyStats(stat) : stat}
+                            stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
                             unified={showUnificado}
+                            type="Autor"
                           />
                         ))}
                       </>
@@ -981,12 +1015,13 @@ const Index = ({
                     isUnifiedChart={showUnificado}
                     showConsolidado={showConsolidado}      // << NOVO
                     selectedCVs={selectedCVs}  
+                    onTotalStatsReady={setTotalStatsFromGraph}
                   />
                 )}
 
                 {viewType === "qualisGraphicParetoCVView" && (
                   <DataGraph
-                    graphName="Gráfico de percentual de produção Qualis (por CV)"
+                    graphName="Gráfico de percentual de produção"
                     init={initYearInput}
                     end={endYearInput}
                     stats={individualStats}
@@ -994,6 +1029,7 @@ const Index = ({
                     showStatistics={showStatistics}
                     isUnifiedChart={true}
                     isParetoChart={true}
+                    onTotalStatsReady={setTotalStatsFromGraph}
                   />
                 )}
                 {viewType === "scoreTable" && (
@@ -1003,9 +1039,10 @@ const Index = ({
                         tableName="Tabela de pontuação Qualis"
                         init={initYearInput}
                         end={endYearInput}
-                        stats={showUnificado ? unifyStats(stats?.__all) : stats?.__all}
+                        stats={showUnificado ? unifyStats(stats?.__all, initYearInput, endYearInput) : stats?.__all}
                         showStatistics={showStatistics}
                         areaData={viewType.includes("score") ? areaData : undefined}
+                        type="Grupo"
                       />
                     ) : showIndividual ? (
                       Object.entries(individualStats).map(([name, stat]) => (
@@ -1014,23 +1051,30 @@ const Index = ({
                           tableName={name}
                           init={initYearInput}
                           end={endYearInput}
-                          stats={showUnificado ? unifyStats(stat) : stat}
+                          stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                           showStatistics={showStatistics}
                           areaData={areaData}
+                          type="Autor"
                         />
                       ))
                     ) : showAgrupado ? (
-                      Object.entries(groupStats).map(([name, stat]) => (
-                        <DataTable
-                          key={name}
-                          tableName={name}
-                          init={initYearInput}
-                          end={endYearInput}
-                          stats={showUnificado ? unifyStats(stat) : stat}
-                          showStatistics={showStatistics}
-                          areaData={areaData}
-                        />
-                      ))
+                      Object.entries(groupStats).map(([name, stat]) => {
+                        const item = selectedCVs.find((cv) => cv.name === name);
+                        const type = item?.groupType === "Grupos" ? "Grupo" : "Autor";
+
+                        return(
+                          <DataTable
+                            key={name}
+                            tableName={name}
+                            init={initYearInput}
+                            end={endYearInput}
+                            stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
+                            showStatistics={showStatistics}
+                            areaData={areaData}
+                            type={type}
+                          />
+                        );
+                      })
                     ) : (
                       <>
                         {Object.entries(groupStats).map(([name, stat]) => (
@@ -1039,7 +1083,7 @@ const Index = ({
                             tableName={name}
                             init={initYearInput}
                             end={endYearInput}
-                            stats={showUnificado ? unifyStats(stat) : stat}
+                            stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
                           />
@@ -1050,7 +1094,7 @@ const Index = ({
                             tableName={name}
                             init={initYearInput}
                             end={endYearInput}
-                            stats={showUnificado ? unifyStats(stat) : stat}
+                            stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
                           />
@@ -1083,6 +1127,7 @@ const Index = ({
                     areaData={areaData}
                     showConsolidado={showConsolidado}      // << NOVO
                     selectedCVs={selectedCVs}  
+                    onTotalStatsReady={setTotalStatsFromGraph}
                   />
                 )}
               
@@ -1112,7 +1157,7 @@ const Index = ({
   
 
         {areaData?.scores && Object.keys(areaData.scores).length > 0 && viewType.includes("score") && (
-          <div className="mt-1">
+          <div hidden={selectedCVs.length < 1} className="mt-1">
             Fonte da pontuação:{" "}
             <a
               href={areaData.source.url}

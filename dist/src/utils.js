@@ -538,14 +538,26 @@ export function getBoundedTrendPoint(regression, x, xList, yBound) {
   return { x: newXIndex, y: y };
 }
 
+function getTotalPerPerson(dataCounts) {
+  return Object.values(dataCounts).map(personData => {
+    const totalA = personData.A?.allyears || 0;
+    const totalB = personData.B?.allyears || 0;
+    return totalA + totalB;
+  });
+}
+
+
 export function getStatisticsAnnotations(
   totalStats,
   showStatistics,
   end,
   init,
-  isUnifiedChart
+  isUnifiedChart,
+  dataCounts
 ) {
   console.log("getStatisticsAnnotations chamado com:", totalStats);
+  console.log(dataCounts)
+  console.log(isUnifiedChart)
 
   const lineAnnotations = [];
 
@@ -554,8 +566,14 @@ export function getStatisticsAnnotations(
       Number(year)
     );
 
+    let mean;
     // Média
-    const mean = arrayMean(totalStats.tot.countList).toFixed(2);
+    if(isUnifiedChart && Object.keys(totalStats).length > 1){
+      mean = arrayMean(getTotalPerPerson(dataCounts)).toFixed(2);
+    }
+    else{
+      mean = arrayMean(totalStats.tot.countList).toFixed(2);
+    }
     lineAnnotations.push({
       id: 'mean',
       type: 'line',
@@ -575,9 +593,16 @@ export function getStatisticsAnnotations(
         display: true,
       },
     });
-
+    
+    let median;
     // Mediana
-    const median = arrayMedian(totalStats.tot.countList).toFixed(2);
+    if(isUnifiedChart && Object.keys(totalStats).length > 1){
+      median = arrayMedian(getTotalPerPerson(dataCounts)).toFixed(2);
+    }
+    else{
+      median = arrayMedian(totalStats.tot.countList).toFixed(2);
+    }
+    
     lineAnnotations.push({
       id: 'median',
       type: 'line',
@@ -822,7 +847,8 @@ export function getBarChatInfo(
     showStatistics,
     end,
     init,
-    isUnifiedChart
+    isUnifiedChart,
+    dataCounts
   );
   
 

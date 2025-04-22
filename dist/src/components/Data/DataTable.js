@@ -31,7 +31,8 @@ const DataTable = ({
   stats,
   showStatistics,
   areaData,
-  unified
+  unified,
+  type
 }) => {
   if (!stats || !stats.year || !Array.isArray(stats.year)) {
     console.error("stats.year está indefinido ou mal formatado", stats);
@@ -151,7 +152,7 @@ const DataTable = ({
   }
   
   // Create header from data arrays
-  const header = [stats.year.length === 1 ? stats.year[0] : "Ano"].concat(Object.keys(qualis))
+  const header = [stats.year.length === 1 ? "Período" : "Ano"].concat(Object.keys(qualis))
     .concat(Object.keys(totals).map(item => item === "all" ? "Total" : "Tot " + item))
     .concat(Object.keys(percentages).map(item => "% " + item));
   const headerLegend = areaData && areaData.scores && [""].concat(Object.keys(qualis).map(item => areaData.scores[item]))
@@ -159,7 +160,7 @@ const DataTable = ({
     .concat(Object.keys(percentages).map(item => ""));
 
   // Create footer from data arrays
-  const footer = ["Total"].concat(
+  const footer = (unified ? [`${init} - ${end}`] : ["Total"]).concat(
     Object.entries(totalStats).map(([key, number]) => {
       if (key === '%A') return roundNumber(totalStats['#A'] / totalStats['#all'] * 100);
       if (key === '%B') return roundNumber(totalStats['#B'] / totalStats['#all'] * 100);
@@ -228,8 +229,12 @@ const DataTable = ({
         <Card className="shadow" style={{ marginBottom: '2rem' }}>
           <CardHeader className="border-0">
             <Row className="align-items-center">
-              <div className="col">
-                <h3 className="mb-0">{tableName}</h3>
+              <div className="col d-flex align-items-center">
+              <h3 className="mb-0 mr-2">
+                {type === "Grupo" && <i className="fa-solid fa-users mr-2" style={{ color: "#5e72e4" }}></i>}
+                {type === "Autor" && <i className="fas fa-user mr-2" style={{ color: "#11cdef" }}></i>}
+                {tableName}
+              </h3>
               </div>
             </Row>
           </CardHeader>

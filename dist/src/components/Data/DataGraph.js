@@ -1,5 +1,6 @@
 // reactstrap components
 import { Card, CardHeader, CardBody, Row, Col } from 'reactstrap';
+import React, { useEffect } from "react";
 
 import {
   updateTotalStats,
@@ -49,6 +50,7 @@ const DataGraph = ({
   isParetoChart = false,
   showConsolidado = false,
   selectedCVs = [],
+  onTotalStatsReady = () => {},
 }) => {
   console.log('stats:', stats);
 
@@ -99,8 +101,8 @@ const DataGraph = ({
   const totalStats = {};
 
   for (const name of Object.keys(stats)) {
-    // console.log('name:', name);
-    // console.log('stats[name]:', stats[name]);
+    console.log('name:', name);
+    console.log('stats[name]:', stats[name]);
 
     // Init data arrays
     length = stats[name].year.length;
@@ -188,6 +190,13 @@ const DataGraph = ({
 
   let graphicConfig;
 
+  useEffect(() => {
+    if (typeof onTotalStatsReady === "function") {
+      onTotalStatsReady(totalStats);
+    }
+  }, [JSON.stringify(totalStats)]);
+
+
   if (isParetoChart) {
     xTitle = `Autores mais produtivos (${init} - ${end})`;
     yTitle = 'Percentual acumulado da produção (estrato geral)';
@@ -236,13 +245,11 @@ const DataGraph = ({
 
     const chartYears = stats[Object.keys(stats)[0]].year;
     let chartStats;
-
-    if (Object.keys(totalStats).length > 1 && (isUnifiedChart || graphName.includes("Todos os currículos"))) {
-      chartStats = unifyTotalStats(totalStats);
-    } else {
-      const firstKey = Object.keys(totalStats)[0];
-      chartStats = totalStats[firstKey];
-    }
+    
+    console.log(totalStats);
+    console.log("Object.keys(totalStats).length: ", Object.keys(totalStats).length)
+    chartStats = unifyTotalStats(totalStats);
+    
 
 
 
@@ -288,7 +295,8 @@ const DataGraph = ({
     );
     
 
-
+    
+    
     // console.log('graphicConfig:', graphicConfig);
 
     return (
