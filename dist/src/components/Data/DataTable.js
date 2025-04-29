@@ -38,6 +38,8 @@ const DataTable = ({
     console.error("stats.year está indefinido ou mal formatado", stats);
     return null;
   }
+  const isScoreTable = Boolean(areaData && areaData.scores && Object.keys(areaData.scores).length > 0);
+
   
   init = Number(init);
   end = Number(end);
@@ -204,16 +206,23 @@ const DataTable = ({
   
 
   // Set rows
-  const rows = !unified
-  ? years.map((year, index) => (
-      <React.Fragment>
-        <TableCell scope="row">{year}</TableCell>
-        {Object.values(qualis).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
-        {Object.values(totals).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
-        {Object.values(percentages).map(item => <TableCell>{roundNumber(item[index])}</TableCell>)}
-      </React.Fragment>
-    )).reverse()
-  : []; // ou seja, não mostra as linhas intermediárias
+  // Sempre mapeia as linhas em `years`; no caso unificado, `years` = ['']
+  const rows = unified && !isScoreTable ?
+  []:
+  years.map((year, index) => (
+    <React.Fragment key={year || index}>
+      <TableCell scope="row">{year}</TableCell>
+      {Object.values(qualis).map((col, i) => (
+        <TableCell key={i}>{roundNumber(col[index])}</TableCell>
+      ))}
+      {Object.values(totals).map((col, i) => (
+        <TableCell key={`t${i}`}>{roundNumber(col[index])}</TableCell>
+      ))}
+      {Object.values(percentages).map((col, i) => (
+        <TableCell key={`p${i}`}>{roundNumber(col[index])}</TableCell>
+      ))}
+    </React.Fragment>
+  )).reverse();
 
   
   const shouldShowStatistics = showStatistics && !unified && stats.year.length > 1;
@@ -231,8 +240,8 @@ const DataTable = ({
             <Row className="align-items-center">
               <div className="col d-flex align-items-center">
               <h3 className="mb-0 mr-2">
-                {type === "Grupo" && <i className="fa-solid fa-users mr-2" style={{ color: "#5e72e4" }}></i>}
-                {type === "Autor" && <i className="fas fa-user mr-2" style={{ color: "#11cdef" }}></i>}
+                {type === "Grupo" && <i className="fa-solid fa-users mr-2" style={{ color: "#415e98" }}></i>}
+                {type === "Autor" && <i className="fas fa-user mr-2" style={{ color: "#415e98" }}></i>}
                 {tableName}
               </h3>
               </div>

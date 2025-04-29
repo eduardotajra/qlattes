@@ -28,12 +28,6 @@ const CVItem = ({
   updateAuthors,
   allQualisScores
 }) => {
-  const [modalAreaSelect, setModalAreaSelect] = useState(false);
-  const [area, setArea] = useState();
-  const [areaData, setAreaData] = useState({});
-
-  const toggleModalAreaSelect = () => setModalAreaSelect(!modalAreaSelect);
-
   const handleRemoveButton = async (e) => {
     let result;
     if (group) { // deletar de grupo
@@ -65,49 +59,7 @@ const CVItem = ({
   }
 
   function handleExportCV() {
-    exportCV(CVLink, areaData);
-  }
-
-  function handleAreaChange(event) {
-    // get previous area (if any)
-    const prevArea = area;
-
-    // get selected area
-    const newArea = event.target.value;
-
-    if (newArea !== "")  {
-      // find selected area data in Qualis score data
-      var match = allQualisScores.find((elem) =>
-        Object.keys(elem.areas).includes(newArea)
-      );
-
-      if (match) {
-        if (Object.keys(match.areas[newArea].scores).length > 0) {
-          const currAreaData = {
-            area: newArea,
-            ...match.areas[newArea]
-          }
-          setAreaData(currAreaData);
-          setArea(newArea);
-
-          // save area data to local store
-          // chrome.storage.local.set({ area_data: currAreaData});
-        } else {
-          // show no scores alert and reset area select to previous area (if any)
-          alert('Esta Área do Conhecimento não definiu pontuação específica para os estratos do Qualis.');
-          if (prevArea !== '') {
-            // reset area select to previously selected option
-            event.target.value = prevArea;
-          } else {
-            // reset area select to placeholder option
-            event.target.selectedIndex = 0;
-          }
-        }
-      }
-    } else {
-      setArea("");
-      setAreaData({});
-    }
+    exportCV(CVLink);
   }
 
   return (
@@ -116,45 +68,10 @@ const CVItem = ({
         <span>{authorName}</span>
         <div className="actions">
           <i className="fas fa-external-link-alt mr-1" onClick={handleLinkButton} style={{fontSize: "14px"}} title="Ir para a página do Lattes"/>
-          {!group && <i className="fas fa-file-export mr-1" onClick={toggleModalAreaSelect} style={{fontSize: "14px"}} title="Exportar curriculo"/>}
+          <i className="fas fa-file-export mr-1" onClick={handleExportCV} style={{fontSize: "14px"}} title="Exportar curriculo"/>
           <i className={group ? "fas fa-trash-can" : "fas fa-trash-can"} onClick={handleRemoveButton} style={{fontSize: "14px"}} title={group? "Remover curriculo do grupo" : "Remover dados do currículo da extensão"}/>
         </div>
       </div>
-      {/* Modal to select area */}
-      <Modal isOpen={modalAreaSelect}>
-        <ModalHeader>Deseja exportar os CVs do grupo {groupName} baseados em uma pontuação de alguma área do conhecimento?</ModalHeader>
-        <ModalBody>
-          <InputGroup className="input-group-alternative mt-3" style={{ marginRight: "15px", border: 'none', backgroundColor: 'white' }}>
-            <InputGroupAddon addonType="prepend">
-              <InputGroupText>
-                <i className="fas fa-graduation-cap" style={{ color: '#415e98' }}/>
-              </InputGroupText>
-            </InputGroupAddon>
-            <Input
-              id="exampleSelect"
-              name="select"
-              type="select"
-              className="input-group-alternative"
-              style={{ marginRight: "15px", color:'#415e98' }}
-              value={area} onChange={e => handleAreaChange(e)}
-              defaultValue=""
-            >
-              <option value="">Sem Área de Conhecimento</option>
-              {allQualisScores.map(greatArea => <optgroup label={greatArea.label}  style={{color: "black"}}>
-                {Object.keys(greatArea.areas).map(area => <option key={area} value={area}>{greatArea.areas[area].label}</option>)}
-              </optgroup>)}
-            </Input>
-          </InputGroup>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={() => {handleExportCV();toggleModalAreaSelect();}}>
-            Continuar
-          </Button>{' '}
-          <Button color="secondary" onClick={toggleModalAreaSelect}>
-            Cancelar
-          </Button>
-        </ModalFooter>
-      </Modal>
     </Col>
   );
 };

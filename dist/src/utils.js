@@ -217,7 +217,7 @@ export async function removerCVfromDB(author) {
 /**
  * Exports
  */
-export async function exportGroupCV(authors, areaData) {
+export async function exportGroupCV(authors) {
   const lattesData = await getLattesData();
 
   const authorsData = Object.keys(lattesData)
@@ -244,11 +244,6 @@ export async function exportGroupCV(authors, areaData) {
     }
   });
 
-  const areaString =
-    Object.keys(areaData).length !== 0
-      ? ` utilizando a pontuação da ${areaData.label}`
-      : '';
-
   const authorsNameString = authorsName.map((authorName, index) =>
     index === 0
       ? authorName
@@ -272,52 +267,51 @@ export async function exportGroupCV(authors, areaData) {
 
   if (authorsName !== 0) {
     var result = window.confirm(
-      `Confirma a exportação dos dados do CV de ${authorsNameString} para o formato CSV${areaString}?`
+      `Confirma a exportação dos dados do CV de ${authorsNameString} para o formato CSV?`
     );
     if (result) {
       // export CV data to external file
-      exportCVDataToFile(authorsData, areaData);
+      exportCVDataToFile(authorsData);
     }
   }
 }
 
-export async function exportCV(authorLink, areaData) {
+export async function exportCV(authorLink) {
+  console.log("Link do autor: ",authorLink)
   const authorData = await getAuthorData(authorLink);
+  authorData.link = authorLink
+  console.log("Dados do autor: ",authorData)
   const pubInfo = authorData.pubInfo;
+  console.log("PubInfo do autor: ",pubInfo)
 
   if (
     (Array.isArray(pubInfo) && pubInfo.length > 0) ||
     (typeof pubInfo === 'object' && Object.entries(pubInfo).length > 0)
   ) {
-    // get area label
-    const areaString =
-      Object.keys(areaData).length !== 0
-        ? ` utilizando a pontuação da ${areaData.label}`
-        : '';
 
     var result = window.confirm(
-      `Confirma a exportação dos dados do CV de ${authorData.name} para o formato CSV${areaString}?`
+      `Confirma a exportação dos dados do CV de ${authorData.name} para o formato CSV?`
     );
     if (result) {
       // export CV data to external file
-      exportCVDataToFile([authorData], areaData);
+      exportCVDataToFile([authorData]);
     }
   } else {
     alert('Este CV não possui dados de publicações em periódico.');
   }
 }
 
-function exportCVDataToFile(authorsData, areaData) {
+function exportCVDataToFile(authorsData) {
   // export author data in CSV format
   chrome.downloads.download({
     url:
       'data:text/csv;charset=utf-8,' +
-      encodeURIComponent(convertLattesDataToCSV(authorsData, areaData)),
+      encodeURIComponent(convertLattesDataToCSV(authorsData)),
     filename: `CVs.csv`,
   });
 }
 
-function convertLattesDataToCSV(authorsData, areaData) {
+function convertLattesDataToCSV(authorsData) {
   const headers = [
     'nome',
     'lattes_url',
@@ -325,23 +319,14 @@ function convertLattesDataToCSV(authorsData, areaData) {
     'titulo_publicacao',
     'periodico',
     'issn',
-    'qualis',
-    'pontos',
-    'area',
     'ano_base',
   ];
-  // get area label and scores (if available)
-  var areaLabel = '';
-  var areaScores;
-  if (Object.keys(areaData).length !== 0) {
-    areaLabel = areaData.label;
-    areaScores = areaData.scores;
-  }
 
   const rows = [];
   authorsData.forEach((authorData) => {
     for (const pubInfoYear of Object.keys(authorData.pubInfo)) {
       for (const pubListElem of authorData.pubInfo[pubInfoYear]) {
+        console.log(authorData.link)
         const row = [
           `"${authorData.name}"`,
           authorData.link,
@@ -349,11 +334,6 @@ function convertLattesDataToCSV(authorsData, areaData) {
           `"${pubListElem.title}"`,
           `"${pubListElem.pubName}"`,
           pubListElem.issn,
-          pubListElem.qualis,
-          pubListElem.qualis !== 'N' && areaLabel !== ''
-            ? getQualisScore(pubListElem.qualis, 1, areaScores)
-            : '',
-          pubListElem.qualis !== 'N' ? areaLabel : '',
           pubListElem.baseYear,
         ];
         rows.push(row);

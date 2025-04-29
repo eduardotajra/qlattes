@@ -200,6 +200,8 @@ const Index = ({
   }
 
   function handleCVsSelect(event, values) {
+    setSelectedPeriod("empty");
+
     console.log("Dados dos autores:", authors);
     console.log("Itens selecionados:", values);
     const selectedLinks = values
@@ -622,7 +624,7 @@ const Index = ({
             {/* Label */}
             {showAll && (
               <Label style={{ marginLeft: "10px", marginRight: "10px", color: "#415e98" }}>
-                {Object.values(pubInfo).flat().length} artigos em periódicos entre {initYear} e {endYear}
+                {Object.values(pubInfo).flat().length} artigos em periódicos, no total, entre {initYear} e {endYear}
               </Label>
             )}
           </FormGroup>
@@ -661,7 +663,7 @@ const Index = ({
                       <option value="qualisTable">Tabela de classificação Qualis</option>
                       <option value="qualisGraphic">Gráfico de classificação Qualis</option>
                       <option value="qualisGraphicParetoCVView">
-                      Gráfico de percentual de produção
+                      Gráfico de produção acumulada
                       </option>
                     </optgroup>
                     <optgroup label="Pontuação" style={{ color: "black" }}>
@@ -835,7 +837,7 @@ const Index = ({
                       addon
                       aria-label="Checkbox for following text input"
                       type="checkbox"
-                      disabled={showUnificado && Object.keys(totalStatsFromGraph).length <= 1}
+                      disabled={showUnificado && (Object.keys(totalStatsFromGraph).length <= 1 || ["scoreTable", "qualisTable"].includes(viewType))}
                       checked={showStatistics && ((showUnificado && Object.keys(totalStatsFromGraph).length > 1) || (!showUnificado))}
                       onChange={(e) => {
                         if ((showUnificado && Object.keys(totalStatsFromGraph).length > 1) || (!showUnificado)) setShowStatistics(!showStatistics);
@@ -939,7 +941,6 @@ const Index = ({
                           end={endYearInput}
                           stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                           showStatistics={showStatistics}
-                          areaData={areaData}
                           unified={showUnificado}
                           type="Autor"
                         />
@@ -957,7 +958,6 @@ const Index = ({
                             end={endYearInput}
                             stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
-                            areaData={areaData}
                             unified={showUnificado}
                             type={type}
                           />
@@ -973,7 +973,6 @@ const Index = ({
                             end={endYearInput}
                             stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
-                            areaData={areaData}
                             unified={showUnificado}
                             type="Grupo"
                           />
@@ -986,7 +985,6 @@ const Index = ({
                             end={endYearInput}
                             stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
-                            areaData={areaData}
                             unified={showUnificado}
                             type="Autor"
                           />
@@ -1021,7 +1019,7 @@ const Index = ({
 
                 {viewType === "qualisGraphicParetoCVView" && (
                   <DataGraph
-                    graphName="Gráfico de percentual de produção"
+                    graphName="Gráfico de produção acumulada"
                     init={initYearInput}
                     end={endYearInput}
                     stats={individualStats}
@@ -1042,6 +1040,7 @@ const Index = ({
                         stats={showUnificado ? unifyStats(stats?.__all, initYearInput, endYearInput) : stats?.__all}
                         showStatistics={showStatistics}
                         areaData={viewType.includes("score") ? areaData : undefined}
+                        unified={showUnificado}
                         type="Grupo"
                       />
                     ) : showIndividual ? (
@@ -1054,6 +1053,7 @@ const Index = ({
                           stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                           showStatistics={showStatistics}
                           areaData={areaData}
+                          unified={showUnificado}
                           type="Autor"
                         />
                       ))
@@ -1071,6 +1071,7 @@ const Index = ({
                             stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
+                            unified={showUnificado}
                             type={type}
                           />
                         );
@@ -1086,6 +1087,7 @@ const Index = ({
                             stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
+                            unified={showUnificado}
                           />
                         ))}
                         {Object.entries(individualStats).map(([name, stat]) => (
@@ -1097,6 +1099,7 @@ const Index = ({
                             stats={showUnificado ? unifyStats(stat, initYearInput, endYearInput) : stat}
                             showStatistics={showStatistics}
                             areaData={areaData}
+                            unified={showUnificado}
                           />
                         ))}
                       </>
