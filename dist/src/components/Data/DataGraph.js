@@ -1,6 +1,7 @@
 // reactstrap components
-import { Card, CardHeader, CardBody, Row, Col } from 'reactstrap';
-import React, { useEffect } from "react";
+import { Button, Card, CardHeader, CardBody, Row, Col } from 'reactstrap';
+import React, { useEffect, useRef } from "react";
+import jsPDF from 'jspdf';
 
 import {
   updateTotalStats,
@@ -53,6 +54,59 @@ const DataGraph = ({
   onTotalStatsReady = () => {},
 }) => {
   console.log('stats:', stats);
+  const chartRef = useRef(null);
+
+  const handleExportChart = () => {
+    // Cria PDF em landscape A4
+    const doc = new jsPDF('landscape', 'pt', 'a4');
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    const titleSize = 16;
+    const spacing = 10;
+  
+    // 1) Desenha o título no topo
+    doc.setFontSize(titleSize);
+    doc.setTextColor(65, 94, 152);
+    doc.text(graphName, margin, margin);
+  
+    // 2) Pega o canvas do Chart.js e converte pra imagem
+    const chart = chartRef.current;
+    if (!chart) return;
+    const canvas = chart.canvas;
+    const imgData = canvas.toDataURL('image/png', 1.0);
+  
+    // 3) Calcula dimensões para caber na página
+    const availableW = pageW - margin * 2;
+    const imgProps = doc.getImageProperties(imgData);
+    const imgH = (imgProps.height * availableW) / imgProps.width;
+    const startY = margin + titleSize + spacing;
+  
+    // 4) Se passar da altura, cabeceia nova página
+    if (startY + imgH > pageH - margin) {
+      doc.addPage();
+    }
+  
+    // 5) Desenha a imagem do gráfico
+    doc.addImage(imgData, 'PNG', margin, startY, availableW, imgH);
+  
+    // 6) (Opcional) Adiciona rodapé com página
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        `Página ${i} de ${pageCount}`,
+        pageW - margin,
+        pageH - 10,
+        { align: 'right' }
+      );
+    }
+  
+    // 7) Salva o PDF
+    doc.save(`${graphName}.pdf`);
+  };
 
   function unifyTotalStats(totalStats) {
   const unified = {};
@@ -206,7 +260,7 @@ const DataGraph = ({
 
     return (
       <Row>
-        <Col className="mb-5 mb-xl-0" xl="8">
+        <Col className="mb-5 mb-xl-0" xl="10">
           <Card className="shadow">
             <CardHeader className="bg-transparent">
               <Row className="align-items-center">
@@ -215,18 +269,29 @@ const DataGraph = ({
                 </div>
               </Row>
             </CardHeader>
+            {/* botão de exportar */}
+            <Button color="primary" className="mb-3" onClick={handleExportChart}>
+              Exportar gráfico (PDF)
+            </Button>
             <CardBody>
               <div
                 style={{
                   width: '100%',
+                  height: '500px',
                   overflowX: 'auto',
                   whiteSpace: 'nowrap',
                   minWidth: '500px',
                 }}
               >
                 <Line
+                  ref={chartRef}
                   data={graphicConfig.data}
-                  options={graphicConfig.options}
+                  options={{
+                    ...graphicConfig.options,
+                    responsive: true,           // encolhe/expande com o container
+                    maintainAspectRatio: false, // ignora aspecto padrão
+                  }}
+                  redraw                         // força redraw ao redimensionar
                 />
               </div>
             </CardBody>
@@ -301,7 +366,7 @@ const DataGraph = ({
 
     return (
       <Row>
-        <Col className="mb-5 mb-xl-0" xl="8">
+        <Col className="mb-5 mb-xl-0" xl="10">
           <Card className="shadow">
             <CardHeader className="bg-transparent">
               <Row className="align-items-center">
@@ -310,18 +375,29 @@ const DataGraph = ({
                 </div>
               </Row>
             </CardHeader>
+            {/* botão de exportar */}
+            <Button color="primary" className="mb-3" onClick={handleExportChart}>
+              Exportar gráfico (PDF)
+            </Button>
             <CardBody>
               <div
                 style={{
                   width: '100%',
+                  height: '500px',
                   overflowX: 'auto',
                   whiteSpace: 'nowrap',
                   minWidth: '500px',
                 }}
               >
                 <Bar
+                  ref={chartRef}
                   data={graphicConfig.data}
-                  options={graphicConfig.options}
+                  options={{
+                    ...graphicConfig.options,
+                    responsive: true,           // encolhe/expande com o container
+                    maintainAspectRatio: false, // ignora aspecto padrão
+                  }}
+                  redraw   
                 />
               </div>
             </CardBody>

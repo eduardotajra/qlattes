@@ -915,137 +915,122 @@ export function getBarChatInfo(
 }
 
 export function getParetoChartInfo(dataCounts, xTitle, yTitle) {
-  // Prepare data counts for a pareto chart
-  const dataArray = [];
+  // Interpolação linear para índices fracionários
+  function getInterpolatedValue(values, xFloat) {
+    if (xFloat <= 0) return values[0];
+    if (xFloat >= values.length - 1) return values[values.length - 1];
+    const lower = Math.floor(xFloat);
+    const upper = Math.ceil(xFloat);
+    if (lower === upper) return values[lower];
+    const alpha = xFloat - lower;
+    return values[lower] + alpha * (values[upper] - values[lower]);
+  }
 
-  // Transform unified data counts into an array of the format [{name: 'john', value: 5}, ...]
-  const dataKeys = Object.keys(dataCounts);
-
-  dataKeys.forEach((name) => {
-    let dataCounter = 0;
-    Object.keys(dataCounts[name]).forEach((label) => {
-      dataCounter += dataCounts[name][label].allyears;
-    });
-    dataArray.push({
-      name: name,
-      value: dataCounter,
-    });
+  // Monta array de { name, value }
+  const dataArray = Object.keys(dataCounts).map(name => {
+    const total = Object.values(dataCounts[name])
+                        .reduce((sum, e) => sum + e.allyears, 0);
+    return { name, value: total };
   });
-
-  // Sort data array descending by value
   dataArray.sort((a, b) => b.value - a.value);
 
-  console.log('dataArray:', dataArray);
-
-  // Compute the total sum of all values
-  const total = dataArray.reduce((acc, item) => acc + item.value, 0);
-
-  console.log('total sum:', total);
-
-  // Build dataset for the chart
+  // Labels e percentuais cumulativos
+  const totalAll = dataArray.reduce((s, it) => s + it.value, 0);
   const labels = [];
-  const cumulativePercents = [];
-
-  let runningSum = 0;
-  dataArray.forEach((item, index) => {
+  const cumulative = [];
+  let run = 0;
+  dataArray.forEach(item => {
     labels.push(abbreviatePortugueseName(item.name));
-    // labels.push(`Autor ${index + 1}`);
-    runningSum += item.value;
-    const percent = (runningSum / total) * 100;
-    // Round if desired (e.g., one decimal place)
-    cumulativePercents.push(parseFloat(percent.toFixed(1)));
+    run += item.value;
+    cumulative.push(parseFloat(((run / totalAll) * 100).toFixed(1)));
   });
 
-  console.log('labels:', labels, 'cumulativePercents:', cumulativePercents);
-
-  // Determine the 25th / 50th percentile positions
+  // Índices fracionários exatos
   const n = dataArray.length;
-  const p25Index = Math.floor(n * 0.25) > 0 ? Math.floor(n * 0.25) - 1 : 0;
-  const p50Index = Math.floor(n * 0.5) > 0 ? Math.floor(n * 0.5) - 1 : 0;
+  const p10Idx = n * 0.1 - 1;
+  const p25Idx = n * 0.25 - 1;
+  const p50Idx = n * 0.5 - 1;
 
-  // Get the cumulative % values just BEFORE those lines
-  const p25YValue = cumulativePercents[p25Index];
-  const p50YValue = cumulativePercents[p50Index];
+  // Valores interpolados
+  const p10Y = getInterpolatedValue(cumulative, p10Idx);
+  const p25Y = getInterpolatedValue(cumulative, p25Idx);
+  const p50Y = getInterpolatedValue(cumulative, p50Idx);
 
-  // Define chart config options
+  // Configuração Chart.js
   const options = {
+    responsive: true,
+    maintainAspectRatio: true, // volta a respeitar proporção
+    aspectRatio: 2,            // largura/altura = 2:1
     plugins: {
       annotation: {
         annotations: {
-          percentile25: {
+          p10: {
             type: 'line',
-            xMin: p25Index, // same as xMax if you want a single vertical line
-            xMax: p25Index,
-            borderColor: 'darkgray',
-            borderWidth: 2,
-            borderDash: [6, 6], // dashed line
-            clip: false,
+            xMin: p10Idx, xMax: p10Idx,
+            borderColor: 'red', borderWidth: 2, borderDash: [6,6],
             label: {
               display: true,
-              content: `P25 (${p25YValue.toFixed(1)}% da produção)`,
-              position: 'end',
-              yAdjust: -10,
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
-              color: 'darkgray',
-            },
+              content: `P10 (${p10Y.toFixed(1)}%)`,
+              position: 'end', yAdjust: -10,
+              backgroundColor: 'rgba(255,255,255,0.7)', color: 'red'
+            }
           },
-          percentile50: {
+          p25: {
             type: 'line',
-            xMin: p50Index,
-            xMax: p50Index,
-            borderColor: 'darkgray',
-            borderWidth: 2,
-            borderDash: [6, 6],
-            clip: false,
+            xMin: p25Idx, xMax: p25Idx,
+            borderColor: 'blue', borderWidth: 2, borderDash: [6,6],
             label: {
               display: true,
-              content: `P50 (${p50YValue.toFixed(1)}% da produção)`,
-              position: 'end',
-              yAdjust: -10,
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
-              color: 'darkgray',
-            },
+              content: `P25 (${p25Y.toFixed(1)}%)`,
+              position: 'end', yAdjust: -10,
+              backgroundColor: 'rgba(255,255,255,0.7)', color: 'blue'
+            }
           },
-        },
+          p50: {
+            type: 'line',
+            xMin: p50Idx, xMax: p50Idx,
+            borderColor: 'green', borderWidth: 2, borderDash: [6,6],
+            label: {
+              display: true,
+              content: `P50 (${p50Y.toFixed(1)}%)`,
+              position: 'end', yAdjust: -10,
+              backgroundColor: 'rgba(255,255,255,0.7)', color: 'green'
+            }
+          }
+        }
       },
-      legend: {
-        display: false,
-      },
+      legend: { display: false }
     },
-    type: 'line',
-    responsive: true,
     scales: {
       x: {
-        title: {
-          display: true,
-          text: xTitle,
-        },
+        title: { display: true, text: xTitle },
+        ticks: {
+          autoSkip: false,
+          maxTicksLimit: 8,
+          maxRotation: 90,
+          minRotation: 45,
+          font: { size: 10 }
+        }
       },
       y: {
         beginAtZero: true,
-        title: {
-          display: true,
-          text: yTitle,
-        },
-      },
-    },
+        title: { display: true, text: yTitle }
+      }
+    }
   };
 
-  // Define chart data
   const data = {
-    labels: labels,
-    datasets: [
-      {
-        // label: 'Percentual acumulado',
-        label: '',
-        data: cumulativePercents, //
-        backgroundColor: 'rgb(75, 192, 192)',
-      },
-    ],
+    labels,
+    datasets: [{
+      label: '',
+      data: cumulative,
+      backgroundColor: 'rgb(75, 192, 192)'
+    }]
   };
 
   return { options, data };
 }
+
 
 // Helper function to Update the alpha channel of an RGBA color string
 // function setColorAlpha(rgbaStr, newAlpha) {

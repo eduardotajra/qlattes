@@ -1,7 +1,11 @@
 import React from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 // reactstrap components
 import {
+  Button,
   Card,
   CardHeader,
   Row,
@@ -169,6 +173,81 @@ const DataTable = ({
       return roundNumber(number);
     })
   );
+
+  const handleExportTable = () => {
+    const doc = new jsPDF('p', 'pt', 'a4');
+  
+    // 1) corpo principal: todas as linhas de anos
+    const body = years.map((yr, i) => [
+      yr,
+      ...Object.keys(qualis).map(k => roundNumber(qualis[k][i])),
+      ...['A','B','all'].map(k => roundNumber(totals[k][i])),
+      ...['A','B'].map(k => roundNumber(percentages[k][i])),
+    ]);
+  
+    // 2) Estatísticas: você já tem estes arrays calculados lá embaixo do seu componente
+    //    Eles têm o formato exato para cada coluna: ["Média", "", "", ..., valorA, valorB, ...]
+    const statsRows = [
+      mean,
+      median,
+      trend,
+      bestYear
+    ];
+  
+    // 3) linha de total global (antes era o "footer")
+    const totalRow = [
+      unified ? `${init}–${end}` : 'Total',
+      ...Object.entries(totalStats).map(([k, v]) =>
+        k === '%A'
+          ? roundNumber(totalStats['#A'] / totalStats['#all'] * 100)
+        : k === '%B'
+          ? roundNumber(totalStats['#B'] / totalStats['#all'] * 100)
+        : roundNumber(v)
+      )
+    ];
+  
+    // 4) monta o fullBody: dados + espaço + total global + espaço + estatísticas
+    const fullBody = unified?[
+      ...body,
+      totalRow,
+    ] : [
+      ...body,
+      [],
+      totalRow,
+      [],
+      ...statsRows
+    ];
+  
+    // 5) chama o autoTable passando o fullBody
+    autoTable(doc, {
+      head: [header],
+      body: fullBody,
+      startY: 60,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 4,
+        textColor: 0,
+      },
+      headStyles: {
+        fillColor: [65, 94, 152],
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [240, 240, 240]
+      },
+      didDrawPage: data => {
+        doc.setFontSize(14);
+        doc.setTextColor(65, 94, 152);
+        doc.text(tableName, data.settings.margin.left, 30);
+      }
+    });
+  
+    // 6) salva o PDF
+    doc.save(`${tableName}.pdf`);
+  };
+  
   
 
 
@@ -234,7 +313,7 @@ const DataTable = ({
   
   return (
     <Row>
-      <Col className="mb-5 mb-xl-0" xl="12">
+      <Col className="mb-5 mb-xl-0" xl="10">
         <Card className="shadow" style={{ marginBottom: '2rem' }}>
           <CardHeader className="border-0">
             <Row className="align-items-center">
@@ -247,6 +326,9 @@ const DataTable = ({
               </div>
             </Row>
           </CardHeader>
+          <Button color="primary" onClick={handleExportTable}>
+            Exportar tabela (PDF)
+          </Button>
           <TableVirtuoso
             data={rows}
             components={{

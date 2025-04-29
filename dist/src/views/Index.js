@@ -133,55 +133,55 @@ const Index = ({
   
 
   const handleAreaChange = async (event) => {
-  const prevArea = area;
-  const newArea = event.target.value;
-  console.log("prevArea: ", prevArea)
-  console.log("newArea: ", newArea)
+    const prevArea = area;
+    const newArea = event.target.value;
+    console.log("prevArea: ", prevArea)
+    console.log("newArea: ", newArea)
 
-  if (newArea === "undefined" || newArea == undefined) {
-    const noAreaData = {
-      area: newArea,
-      scores: {},
-      label: "Sem Área do Conhecimento",
-      source: {},
-      base_year: "",
-    };
+    if (newArea === "undefined" || newArea == undefined) {
+      const noAreaData = {
+        area: newArea,
+        scores: {},
+        label: "Sem Área do Conhecimento",
+        source: {},
+        base_year: "",
+      };
 
-    await chrome.storage.local.set({ area_data: noAreaData });
-    setArea("undefined");
-    setAreaData(noAreaData);
-    updateArea();
+      await chrome.storage.local.set({ area_data: noAreaData });
+      setArea("undefined");
+      setAreaData(noAreaData);
+      updateArea();
 
-  } else {
-    const match = allQualisScores.find((elem) =>
-      Object.keys(elem.areas).includes(newArea)
-    );
+    } else {
+      const match = allQualisScores.find((elem) =>
+        Object.keys(elem.areas).includes(newArea)
+      );
 
-    if (match) {
-      if (Object.keys(match.areas[newArea].scores).length > 0) {
-        const currAreaData = {
-          area: newArea,
-          ...match.areas[newArea],
-        };
-        setAreaData(currAreaData);
-        setArea(newArea);
-        await chrome.storage.local.set({ area_data: currAreaData });
-        updateArea();
-      } else {
-        alert(
-          "Esta Área do Conhecimento não definiu pontuação específica para os estratos do Qualis."
-        );
-
-        // Reverter seleção visualmente no <select>
-        if (prevArea !== "") {
-          event.target.value = prevArea;
+      if (match) {
+        if (Object.keys(match.areas[newArea].scores).length > 0) {
+          const currAreaData = {
+            area: newArea,
+            ...match.areas[newArea],
+          };
+          setAreaData(currAreaData);
+          setArea(newArea);
+          await chrome.storage.local.set({ area_data: currAreaData });
+          updateArea();
         } else {
-          event.target.selectedIndex = 0;
+          alert(
+            "Esta Área do Conhecimento não definiu pontuação específica para os estratos do Qualis."
+          );
+
+          // Reverter seleção visualmente no <select>
+          if (prevArea !== "") {
+            event.target.value = prevArea;
+          } else {
+            event.target.selectedIndex = 0;
+          }
         }
       }
     }
-  }
-};
+  };
 
 
   function handleSelectedPeriod(value) {
