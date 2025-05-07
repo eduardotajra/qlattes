@@ -108,6 +108,21 @@ const DataGraph = ({
     doc.save(`${graphName}.pdf`);
   };
 
+
+
+  const handleExportPng = () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const canvas = chart.canvas;
+    const imgData = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = `${graphName}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   function unifyTotalStats(totalStats) {
   const unified = {};
 
@@ -260,19 +275,17 @@ const DataGraph = ({
 
     return (
       <Row>
-        <Col className="mb-5 mb-xl-0" xl="10">
+        <Col className="mb-5 mb-xl-0" xl="11">
           <Card className="shadow">
             <CardHeader className="bg-transparent">
               <Row className="align-items-center">
                 <div className="col">
                   <h2 className="mb-0">{graphName}</h2>
                 </div>
+                <i color="primary" class="fa-solid fa-file-image pr-3" style={{cursor: "pointer" }}onClick={handleExportPng} title='Exportar gráfico (PNG)'></i>
+                <i color="primary" class="fa-solid fa-file-pdf pr-3" style={{cursor: "pointer" }}onClick={handleExportChart} title='Exportar gráfico (PDF)'></i>
               </Row>
             </CardHeader>
-            {/* botão de exportar */}
-            <Button color="primary" className="mb-3" onClick={handleExportChart}>
-              Exportar gráfico (PDF)
-            </Button>
             <CardBody>
               <div
                 style={{
@@ -366,19 +379,17 @@ const DataGraph = ({
 
     return (
       <Row>
-        <Col className="mb-5 mb-xl-0" xl="10">
+        <Col className="mb-5 mb-xl-0" xl="11">
           <Card className="shadow">
             <CardHeader className="bg-transparent">
               <Row className="align-items-center">
                 <div className="col">
                   <h2 className="mb-0">{graphName}</h2>
                 </div>
+                <i color="primary" class="fa-solid fa-file-image pr-3" style={{cursor: "pointer" }}onClick={handleExportPng} title='Exportar gráfico (PNG)'></i>
+                <i color="primary" class="fa-solid fa-file-pdf pr-3" style={{cursor: "pointer" }}onClick={handleExportChart} title='Exportar gráfico (PDF)'></i>
               </Row>
             </CardHeader>
-            {/* botão de exportar */}
-            <Button color="primary" className="mb-3" onClick={handleExportChart}>
-              Exportar gráfico (PDF)
-            </Button>
             <CardBody>
               <div
                 style={{

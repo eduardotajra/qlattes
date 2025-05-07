@@ -837,6 +837,7 @@ const Index = ({
                       addon
                       aria-label="Checkbox for following text input"
                       type="checkbox"
+                      style={{cursor: "pointer" }}
                       disabled={showUnificado && (Object.keys(totalStatsFromGraph).length <= 1 || ["scoreTable", "qualisTable"].includes(viewType))}
                       checked={showStatistics && ((showUnificado && Object.keys(totalStatsFromGraph).length > 1) || (!showUnificado))}
                       onChange={(e) => {
@@ -851,6 +852,7 @@ const Index = ({
                       <>
                         <Input
                           type="checkbox"
+                          style={{cursor: "pointer" }}
                           checked={showConsolidado}
                           onChange={() => {
                             const novoValor = !showConsolidado;
@@ -873,6 +875,7 @@ const Index = ({
                       <>
                         <Input
                           type="checkbox"
+                          style={{cursor: "pointer" }}
                           checked={showIndividual}
                           onChange={() => {
                             const novoValor = !showIndividual;
@@ -895,6 +898,7 @@ const Index = ({
 
                     <Input
                       type="checkbox"
+                      style={{cursor: "pointer" }}
                       checked={showUnificado}
                       onChange={() => {
                         const novoValor = !showUnificado;

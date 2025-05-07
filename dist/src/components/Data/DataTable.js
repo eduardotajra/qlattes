@@ -1,6 +1,7 @@
 import React from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 
 // reactstrap components
@@ -247,6 +248,76 @@ const DataTable = ({
     // 6) salva o PDF
     doc.save(`${tableName}.pdf`);
   };
+
+
+
+  const handleExportCsv = () => {
+    // Gera os mesmos dados do PDF em uma matriz de arrays
+    const body = years.map((yr, i) => [
+      yr,
+      ...Object.keys(qualis).map(k => roundNumber(qualis[k][i])),
+      ...['A','B','all'].map(k => roundNumber(totals[k][i])),
+      ...['A','B'].map(k => roundNumber(percentages[k][i])),
+    ]);
+    const totalRow = [
+      unified ? `${init}–${end}` : 'Total',
+      ...Object.entries(totalStats).map(([k, v]) =>
+        k === '%A'
+          ? roundNumber(totalStats['#A'] / totalStats['#all'] * 100)
+        : k === '%B'
+          ? roundNumber(totalStats['#B'] / totalStats['#all'] * 100)
+        : roundNumber(v)
+      )
+    ];
+    const mn = mean
+    mn[0] = 'Media'
+    const td = trend
+    td[0] = 'Tendencia'
+    const by = bestYear
+    by[0] = 'Melhor_Ano'
+    const fullBodyCsv = unified
+      ? [...body, totalRow]
+      : [...body, totalRow, mn, median, td, by];
+    const rows = [header, ...fullBodyCsv];
+    const csvContent = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `${tableName}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
+  
+  const handleExportXlsx = () => {
+    // Mesma matriz de dados para XLSX
+    const body = years.map((yr, i) => [
+      yr,
+      ...Object.keys(qualis).map(k => roundNumber(qualis[k][i])),
+      ...['A','B','all'].map(k => roundNumber(totals[k][i])),
+      ...['A','B'].map(k => roundNumber(percentages[k][i])),
+    ]);
+    const totalRow = [
+      unified ? `${init}–${end}` : 'Total',
+      ...Object.entries(totalStats).map(([k, v]) =>
+        k === '%A'
+          ? roundNumber(totalStats['#A'] / totalStats['#all'] * 100)
+        : k === '%B'
+          ? roundNumber(totalStats['#B'] / totalStats['#all'] * 100)
+        : roundNumber(v)
+      )
+    ];
+    const fullBodyXlsx = unified
+      ? [...body, totalRow]
+      : [...body, [], totalRow, [], mean, median, trend, bestYear];
+    // Cria workbook e sheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([header, ...fullBodyXlsx]);
+    XLSX.utils.book_append_sheet(wb, ws, tableName);
+    XLSX.writeFile(wb, `${tableName}.xlsx`);
+  };
   
   
 
@@ -269,9 +340,13 @@ const DataTable = ({
 
   // Get statistics
   const mean = ["Média"].concat(Object.keys(qualis).map(item => ""));
+  console.log("Média:", mean)
   const median = ["Mediana"].concat(Object.keys(qualis).map(item => ""));
+  console.log("Mediana:", median)
   const trend = ["Tendência"].concat(Object.keys(qualis).map(item => ""));
+  console.log("Tendência:", trend)
   const bestYear = ["Melhor ano"].concat(Object.keys(qualis).map(item => ""));
+  console.log("Melhor Ano:", bestYear)
   for (const col of Object.keys(statistics)) {
     console.log(statistics[col])
     mean.push(statistics[col].countList.length === 0 ? 0 : mean1(statistics[col].countList).toFixed(2));
@@ -313,7 +388,7 @@ const DataTable = ({
   
   return (
     <Row>
-      <Col className="mb-5 mb-xl-0" xl="10">
+      <Col className="mb-5 mb-xl-0" xl="11">
         <Card className="shadow" style={{ marginBottom: '2rem' }}>
           <CardHeader className="border-0">
             <Row className="align-items-center">
@@ -324,11 +399,11 @@ const DataTable = ({
                 {tableName}
               </h3>
               </div>
+              <i color="primary" class="fa-solid fa-file-excel pr-3" style={{cursor: "pointer" }}onClick={handleExportXlsx} title='Exportar tabela (XLSX)'></i>
+              <i color="primary" class="fa-solid fa-file-csv pr-3" style={{cursor: "pointer" }}onClick={handleExportCsv} title='Exportar tabela (CSV)'></i>
+              <i color="primary" class="fa-solid fa-file-pdf pr-3" style={{cursor: "pointer" }}onClick={handleExportTable} title='Exportar tabela (PDF)'></i>
             </Row>
           </CardHeader>
-          <Button color="primary" onClick={handleExportTable}>
-            Exportar tabela (PDF)
-          </Button>
           <TableVirtuoso
             data={rows}
             components={{

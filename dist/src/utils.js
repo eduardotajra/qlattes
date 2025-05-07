@@ -319,6 +319,7 @@ function convertLattesDataToCSV(authorsData) {
     'titulo_publicacao',
     'periodico',
     'issn',
+    'qualis',
     'ano_base',
   ];
 
@@ -334,6 +335,7 @@ function convertLattesDataToCSV(authorsData) {
           `"${pubListElem.title}"`,
           `"${pubListElem.pubName}"`,
           pubListElem.issn,
+          pubListElem.qualis,
           pubListElem.baseYear,
         ];
         rows.push(row);
@@ -967,34 +969,34 @@ export function getParetoChartInfo(dataCounts, xTitle, yTitle) {
           p10: {
             type: 'line',
             xMin: p10Idx, xMax: p10Idx,
-            borderColor: 'red', borderWidth: 2, borderDash: [6,6],
+            borderColor: 'rgb(255, 99, 132)', borderWidth: 2, borderDash: [6,6],
             label: {
               display: true,
               content: `P10 (${p10Y.toFixed(1)}%)`,
               position: 'end', yAdjust: -10,
-              backgroundColor: 'rgba(255,255,255,0.7)', color: 'red'
+              backgroundColor: 'rgba(255,255,255,0.7)', color: 'rgb(255, 99, 132)'
             }
           },
           p25: {
             type: 'line',
             xMin: p25Idx, xMax: p25Idx,
-            borderColor: 'blue', borderWidth: 2, borderDash: [6,6],
+            borderColor: 'rgb(54, 162, 235)', borderWidth: 2, borderDash: [6,6],
             label: {
               display: true,
               content: `P25 (${p25Y.toFixed(1)}%)`,
               position: 'end', yAdjust: -10,
-              backgroundColor: 'rgba(255,255,255,0.7)', color: 'blue'
+              backgroundColor: 'rgba(255,255,255,0.7)', color: 'rgb(54, 162, 235)'
             }
           },
           p50: {
             type: 'line',
             xMin: p50Idx, xMax: p50Idx,
-            borderColor: 'green', borderWidth: 2, borderDash: [6,6],
+            borderColor: 'rgb(75, 192, 192)', borderWidth: 2, borderDash: [6,6],
             label: {
               display: true,
               content: `P50 (${p50Y.toFixed(1)}%)`,
               position: 'end', yAdjust: -10,
-              backgroundColor: 'rgba(255,255,255,0.7)', color: 'green'
+              backgroundColor: 'rgba(255,255,255,0.7)', color: 'rgb(75, 192, 192)'
             }
           }
         }
