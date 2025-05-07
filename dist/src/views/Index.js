@@ -41,7 +41,7 @@ const Index = ({
   const [showConsolidado, setShowConsolidado] = useChromeState("showConsolidado",false);
   const [showAgrupado, setShowAgrupado] = useChromeState("showAgrupado",false);
   const [showIndividual, setShowIndividual] = useChromeState("showIndividual",false);
-  const [showUnificado, setShowUnificado] = useChromeState("showIndividual",false);
+  const [showUnificado, setShowUnificado] = useChromeState("showUnificado",false);
 
   const [selectedCVs, setSelectedCVs] = useChromeState("selectedCVs",[]);
 
