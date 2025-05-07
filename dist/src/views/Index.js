@@ -1,5 +1,5 @@
 /*global chrome*/
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import {
   Form,
   FormGroup,
@@ -23,6 +23,7 @@ import {
   getQualisStats,
   addMissingYearsToAuthorStats,
 } from "../utils";
+import { Popper } from "@mui/material";
 
 const Index = ({
   authors,
@@ -33,41 +34,64 @@ const Index = ({
   updateArea,
   refresh, // recebido do pai (opcional)
 }) => {
-  const [area, setArea] = React.useState(previousArea?.area);
-  const [areaData, setAreaData] = React.useState(previousArea);
-  const [viewType, setViewType] = React.useState("");
-  const [showStatistics, setShowStatistics] = React.useState(false);
-  const [showConsolidado, setShowConsolidado] = React.useState(false);
-  const [showAgrupado, setShowAgrupado] = React.useState(false);
-  const [showIndividual, setShowIndividual] = React.useState(false);
-  const [showUnificado, setShowUnificado] = React.useState(false);
+  const [area, setArea] = useChromeState("area",previousArea?.area);
+  const [areaData, setAreaData] = useChromeState("areaData",previousArea);
+  const [viewType, setViewType] = useChromeState("viewType","");
+  const [showStatistics, setShowStatistics] = useChromeState("showStatistics",false);
+  const [showConsolidado, setShowConsolidado] = useChromeState("showConsolidado",false);
+  const [showAgrupado, setShowAgrupado] = useChromeState("showAgrupado",false);
+  const [showIndividual, setShowIndividual] = useChromeState("showIndividual",false);
+  const [showUnificado, setShowUnificado] = useChromeState("showIndividual",false);
 
-  const [selectedCVs, setSelectedCVs] = React.useState([]);
+  const [selectedCVs, setSelectedCVs] = useChromeState("selectedCVs",[]);
 
-  const [initYear, setInitYear] = React.useState(0);
-  const [endYear, setEndYear] = React.useState(0);
-  const [initYearInput, setInitYearInput] = React.useState(0);
-  const [endYearInput, setEndYearInput] = React.useState(0);
+  const [initYear, setInitYear] = useChromeState("initYear",0);
+  const [endYear, setEndYear] = useChromeState("endYear",0);
+  const [initYearInput, setInitYearInput] = useChromeState("initYearInput",0);
+  const [endYearInput, setEndYearInput] = useChromeState("endYearInput",0);
 
-  const [qualisFilter, setQualisFilter] = React.useState(["A", "B"]);
-  const [isUnifiedChart, setIsUnifiedChart] = React.useState(false);
-  const [stats, setStats] = React.useState([]);
-  const [individualStats, setIndividualStats] = React.useState([]);
-  const [groupStats, setGroupStats] = React.useState([]);
-  const [pubInfo, setPubInfo] = React.useState([]);
-  const [individualPubInfo, setIndividualPubInfo] = React.useState([]);
-  const [groupPubInfo, setGroupPubInfo] = React.useState([]);
-  const [showAll, setShowAll] = React.useState(false);
-  const [selectedPeriod, setSelectedPeriod] = React.useState("empty");
+  const [qualisFilter, setQualisFilter] = useChromeState("qualisFilter",["A", "B"]);
+  const [isUnifiedChart, setIsUnifiedChart] = useChromeState("isUnifiedChart",false);
+  const [stats, setStats] = useChromeState("stats",[]);
+  const [individualStats, setIndividualStats] = useChromeState("individualStats",[]);
+  const [groupStats, setGroupStats] = useChromeState("groupStats",[]);
+  const [pubInfo, setPubInfo] = useChromeState("pubInfo",[]);
+  const [individualPubInfo, setIndividualPubInfo] = useChromeState("individualPubInfo",[]);
+  const [groupPubInfo, setGroupPubInfo] = useChromeState("groupPubInfo",[]);
+  const [showAll, setShowAll] = useChromeState("showAll",false);
+  const [selectedPeriod, setSelectedPeriod] = useChromeState("selectedPeriod","empty");
 
-  const [totalStatsFromGraph, setTotalStatsFromGraph] = React.useState({});
-  const [showAreaAlert, setShowAreaAlert] = React.useState(true);
+  const [totalStatsFromGraph, setTotalStatsFromGraph] = useChromeState("totalStatsFromGraph",{});
+  const [showAreaAlert, setShowAreaAlert] = useChromeState("showAreaAlert",true);
+
+
+  // hook usando chrome.storage.local
+  function useChromeState(key, defaultValue) {
+    const [state, setState] = useState(defaultValue);
+  
+    // ao montar, puxa do chrome.storage
+    useEffect(() => {
+      chrome.storage.local.get([key], (res) => {
+        if (res[key] !== undefined) {
+          setState(res[key]);
+        }
+      });
+    }, [key]);
+  
+    // sempre que mudar, grava
+    useEffect(() => {
+      chrome.storage.local.set({ [key]: state });
+    }, [key, state]);
+  
+    return [state, setState];
+  }
+  
 
 
 
 
   // useMemo para recalcular cvOptions sempre que authorsNameLink, groups ou refresh mudarem
-  const [cvOptions, setCvOptions] = React.useState([]);
+  const [cvOptions, setCvOptions] = useState([]);
 
   React.useEffect(() => {
     const authorsNameLinkWithGroup = authorsNameLink.map((author) => ({
@@ -525,6 +549,16 @@ const Index = ({
                   handleCVsSelect(event, newValue);
                 }}
                 multiple
+                isOptionEqualToValue={(option, value) => {
+                  if (option.groupType === "Autores" && value.groupType === "Autores") {
+                    return option.link === value.link;
+                  }
+                  if (option.groupType === "Grupos" && value.groupType === "Grupos") {
+                    // compara pelo array de authors
+                    return JSON.stringify(option.authors) === JSON.stringify(value.authors);
+                  }
+                  return false;
+                }}
                 value={selectedCVs}
                 options={cvOptions}
                 getOptionLabel={(option) => option.name}
@@ -564,6 +598,11 @@ const Index = ({
                   <TextField {...params} placeholder="Selecione um ou mais currículos ou grupos" />
                 )}
                 noOptionsText="Não há CVs disponíveis"
+                ListboxProps={{
+                  sx: {
+                    paddingTop: 0,
+                  }
+                }}
                 sx={{
                   width: "95%",
                   "& .MuiButtonBase-root": { color: "#415e98"},
@@ -624,7 +663,7 @@ const Index = ({
             {/* Label */}
             {showAll && (
               <Label style={{ marginLeft: "10px", marginRight: "10px", color: "#415e98" }}>
-                {Object.values(pubInfo).flat().length} artigos em periódicos, no total, entre {initYear} e {endYear}
+                Foram encontrados {Object.values(pubInfo).flat().length} artigos em periódicos, no total, entre {initYear} e {endYear}
               </Label>
             )}
           </FormGroup>

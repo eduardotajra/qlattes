@@ -113,8 +113,21 @@ const DataGraph = ({
   const handleExportPng = () => {
     const chart = chartRef.current;
     if (!chart) return;
+  
     const canvas = chart.canvas;
+    const ctx = canvas.getContext('2d');
+  
+    // 1. Desenha um fundo branco por baixo de tudo
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  
+    // 2. Gera o PNG
     const imgData = canvas.toDataURL('image/png');
+  
+    // 3. Cria o link para download
     const link = document.createElement('a');
     link.href = imgData;
     link.download = `${graphName}.png`;
@@ -122,6 +135,7 @@ const DataGraph = ({
     link.click();
     document.body.removeChild(link);
   };
+  
 
   function unifyTotalStats(totalStats) {
   const unified = {};
