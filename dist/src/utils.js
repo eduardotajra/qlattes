@@ -122,6 +122,12 @@ export async function getLattesData() {
   return lattesData['lattes_data'] || {};
 }
 
+export async function importCVFromCsv(authorLink, authorName, pubInfo) {
+  const lattesData = await getLattesData();
+  lattesData[authorLink] = { name: authorName, pubInfo };
+  await chrome.storage.local.set({ lattes_data: lattesData });
+}
+
 export async function getAuthorData(author) {
   const lattesData = await getLattesData();
 
@@ -1229,3 +1235,66 @@ function abbreviatePortugueseName(fullName) {
   //    e.g. ["J.", "M."] + "Mendonça Filho" => "J. M. Mendonça Filho"
   return [...abbreviated, finalLastName].join(' ');
 }
+
+
+export async function exportCVToCsv(CVLink) {
+  // 1) busca todos os CVs salvos
+  const allData = await getLattesData();
+  const cv = allData[CVLink];
+  if (!cv) {
+    console.error(`CV não encontrado para o link: ${CVLink}`);
+    return;
+  }
+
+  // 2) monta array de linhas
+  const rows = [];
+  const nome = cv.name;
+  for (const [ano, listaPubs] of Object.entries(cv.pubInfo)) {
+    for (const pub of listaPubs) {
+      rows.push({
+        nome,
+        link: CVLink,
+        ano,
+        issn: pub.issn,
+        titulo: pub.title,
+        periodico: pub.pubName,
+        qualis: pub.qualis,
+        jcr: pub.jcr,
+        baseYear: pub.baseYear || ''
+      });
+    }
+  }
+
+  // 3) converte em CSV
+  const csv = arrayToCsv(rows);
+
+  // 4) dispara download pelo Chrome Downloads API
+  const safeName = nome.replace(/\s+/g, '_');
+  const filename = `${safeName}_${Date.now()}.csv`;
+  chrome.downloads.download({
+    url: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
+    filename,
+  });
+}
+
+/**
+ * Converte um array de objetos em string CSV,
+ * adicionando BOM UTF-8 para compatibilidade com Excel.
+ */
+function arrayToCsv(rows) {
+  if (!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const lines = [headers.join(',')];
+  for (const row of rows) {
+    const line = headers
+      .map(h => {
+        const cell = row[h] != null ? String(row[h]) : '';
+        return `"${cell.replace(/"/g, '""')}"`;
+      })
+      .join(',');
+    lines.push(line);
+  }
+  // BOM (\uFEFF) + quebras CRLF
+  return '\uFEFF' + lines.join('\r\n');
+}
+

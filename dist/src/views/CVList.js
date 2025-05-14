@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import Papa from 'papaparse';
+import { importCVFromCsv, getLattesData } from '../utils';
 import {
   Container,
   Row,
@@ -10,6 +12,7 @@ import {
   InputGroupAddon,
   InputGroupText,
   InputGroup,
+  Button,
 } from "reactstrap";
 import CVItem from "components/CVItem";
 
@@ -20,6 +23,7 @@ const CVList = ({
   allQualisScores,
   updateAuthors
 }) => {
+  const fileInputRef = useRef(null);
   const [filteredAuthors, setFilteredAuthors] = useState([]);
 
   React.useEffect(() => {
@@ -39,6 +43,56 @@ const CVList = ({
     setFilteredAuthors(filteredAuthors.filter(author => author.link !== authorLink));
     updateAuthors();
   }
+
+  const handleImportFile = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async ({ data, errors }) => {
+        if (errors.length) {
+          alert('Erro ao ler CSV: verifique o formato.');
+          return;
+        }
+        const required = ['nome','link','ano','titulo','periodico','issn','qualis','jcr','baseYear'];
+        const missing = required.filter(h => !Object.keys(data[0]).includes(h));
+        if (missing.length) {
+          alert(`CSV inválido. Faltando: ${missing.join(', ')}`);
+          return;
+        }
+
+        const allData = await getLattesData();
+        if (allData[data[0].link]) {
+          const overwrite = window.confirm(
+            `Já existe um currículo salvo para "${data[0].nome}".\n` +
+            `Deseja sobrescrever os dados existentes?`
+          );
+          if (!overwrite) {
+            alert('Importação cancelada.');
+            return;
+          }
+        }
+
+        const pubInfo = {};
+        data.forEach(row => {
+          const y = row.ano;
+          if (!pubInfo[y]) pubInfo[y] = [];
+          pubInfo[y].push({
+            issn: row.issn,
+            title: row.titulo,
+            pubName: row.periodico,
+            qualis: row.qualis,
+            jcr: row.jcr,
+            baseYear: row.baseYear
+          });
+        });
+        await importCVFromCsv(data[0].link, data[0].nome, pubInfo);
+        updateAuthors();
+        alert('Currículo importado com sucesso!');
+      }
+    });
+  };
 
   return (
     <>
@@ -85,8 +139,30 @@ const CVList = ({
         <Row>
           <div className="col">
             <Card className="shadow mt-3">
-              <CardHeader className="bg-transparent">
+              <CardHeader className="bg-transparent" style={{ flexDirection: 'row', display: 'flex', justifyContent: "space-between", alignItems: 'center'}}>
                 <h3 className="mb-0">Currículos Carregados</h3>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Button
+                    color="white"
+                    size="sm"
+                    onClick={() => fileInputRef.current.click()}
+                    style={{
+                      width: '160px',
+                      alignSelf: 'flex-start',
+                      color: '#415e98'
+                    }}
+                  >
+                    <i className="fas fa-file-csv mr-1" /> Importar CSV
+                  </Button>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleImportFile}
+                  />
+                </div>
+
               </CardHeader>
               <CardBody>
                 <Row className="icon-examples">

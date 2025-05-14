@@ -16,6 +16,7 @@ import {
   removerCVfromDB,
   removeCVfromGroup,
   exportCV,
+  exportCVToCsv,
   getGroups
 } from "../utils";
 
@@ -62,13 +63,18 @@ const CVItem = ({
     exportCV(CVLink);
   }
 
+  function handleExportCVToCsv() {    // ← novo handler
+  exportCVToCsv(CVLink);
+}
+
   return (
     <Col lg="3" md="6">
       <div className="btn-icon-clipboard" style={{ flexDirection: 'row', display: 'flex', justifyContent: 'space-between' }}>
         <span>{authorName}</span>
         <div className="actions">
           <i className="fas fa-external-link-alt mr-1" onClick={handleLinkButton} style={{fontSize: "14px"}} title="Ir para a página do Lattes"/>
-          <i className="fas fa-file-export mr-1" onClick={handleExportCV} style={{fontSize: "14px"}} title="Exportar curriculo"/>
+          <i className="fas fa-file-csv mr-1" onClick={handleExportCV} style={{fontSize: "14px"}} title="Exportar curriculo"/>
+          <i className="fas fa-file-export mr-1" onClick={handleExportCVToCsv} style={{ fontSize: "14px" }} title="Exportar currículo (CSV para extensão)"/>
           <i className={group ? "fas fa-trash-can" : "fas fa-trash-can"} onClick={handleRemoveButton} style={{fontSize: "14px"}} title={group? "Remover curriculo do grupo" : "Remover dados do currículo da extensão"}/>
         </div>
       </div>
