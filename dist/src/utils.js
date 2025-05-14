@@ -1298,3 +1298,77 @@ function arrayToCsv(rows) {
   return '\uFEFF' + lines.join('\r\n');
 }
 
+export async function exportGroupCsvForImport(authorLinks) {
+  // 1) recupera todos os CVs salvos
+  const allData = await getLattesData();
+
+  // 2) monta as linhas
+  const rows = [];
+  for (const link of authorLinks) {
+    const cv = allData[link];
+    if (!cv) {
+      console.warn(`CV não encontrado no storage: ${link}`);
+      continue; // pula CVs que não existirem
+    }
+    const nome = cv.name;
+    for (const [ano, listaPubs] of Object.entries(cv.pubInfo)) {
+      listaPubs.forEach(pub => {
+        rows.push({
+          nome,
+          link,
+          ano,
+          issn: pub.issn,
+          titulo: pub.title,
+          periodico: pub.pubName,
+          qualis: pub.qualis,
+          jcr: pub.jcr,
+          baseYear: pub.baseYear || ''
+        });
+      });
+    }
+  }
+
+  // 3) gera CSV
+  const csv = arrayToCsv(rows);
+
+  // 4) dispara download
+  const filename = `grupo_${Date.now()}.csv`;
+  chrome.downloads.download({
+    url: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv),
+    filename,
+  });
+}
+
+export async function importGroupFromCsv(groupName, authorLinks) {
+  // 1) importa faltantes de cada CV
+  const allData = await getLattesData();
+  for (const link of authorLinks) {
+    if (!allData[link]) {
+      console.log(`Importando CV ausente: ${link}`);
+      // você pode adaptar esse import para puxar pubInfo do CSV
+      // mas assumimos que a chamada quem invoca já montou pubInfo
+      // aqui apenas logamos; se precisar, chame importCVFromCsv
+    }
+  }
+
+  // 2) carrega grupos existentes
+  const groupsObj = await getGroups();
+
+  // 3) verifica se o grupo já existe
+  const existingEntry = Object.entries(groupsObj)
+    .find(([id, grp]) => grp.name.trim().toLowerCase() === groupName.trim().toLowerCase());
+
+  if (existingEntry) {
+    // sobrescreve
+    const [existingId] = existingEntry;
+    groupsObj[existingId].authors = authorLinks;
+  } else {
+    // cria novo ID incremental
+    const ids = Object.keys(groupsObj).map((i) => Number(i));
+    const newId = ids.length ? Math.max(...ids) + 1 : 0;
+    groupsObj[newId] = { name: groupName, authors: authorLinks };
+  }
+
+  // 4) salva de volta
+  await chrome.storage.local.set({ groupData: groupsObj });
+}

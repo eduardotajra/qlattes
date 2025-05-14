@@ -15,14 +15,19 @@ import {
   ModalFooter,
 } from "reactstrap";
 import GroupItem from "components/GroupItem";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+
+import Papa from 'papaparse';
 
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 
 import {
+  importGroupFromCsv,
+  getLattesData,
   addNewGroup,
-  getGroups
+  getGroups,
+  importCVFromCsv
 } from "../utils";
 
 const GroupList = ({
@@ -32,6 +37,8 @@ const GroupList = ({
   authorsNameLink,
   allQualisScores
 }) => {
+  const fileInputRef = useRef(null);
+
   const [modal, setModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupAuthors, setNewGroupAuthors] = useState([]);
@@ -44,6 +51,12 @@ const GroupList = ({
   const [editingGroupName, setEditingGroupName] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  const [importCvMap, setImportCvMap] = useState(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importGroupName, setImportGroupName] = useState("");
+
+  const initialLattesRef = useRef(null);
+  const initialGroupsRef = useRef(null);
 
   // Atualiza localGroups quando groups muda
   useEffect(() => {
@@ -134,6 +147,173 @@ const GroupList = ({
     setSelectedOption(value);
   }
 
+  const handleImportGroupFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      fileInputRef.current.value = '';
+      return;
+    }
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async ({ data, errors }) => {
+        // 0) Validações básicas
+        if (errors.length) {
+          alert("Erro ao ler CSV: verifique o formato.");
+          fileInputRef.current.value = '';
+          return;
+        }
+        const required = ["nome","link","ano","titulo","periodico","issn","qualis","jcr","baseYear"];
+        const missing = required.filter(col => !data[0].hasOwnProperty(col));
+        if (missing.length) {
+          alert(`CSV inválido. Faltando: ${missing.join(", ")}`);
+          fileInputRef.current.value = '';
+          return;
+        }
+
+        // 1) Snapshot para rollback
+        initialLattesRef.current = await getLattesData();
+        initialGroupsRef.current = await getGroups();
+
+        // 2) Monta cvMap de pubInfo
+        const cvMap = {};
+        data.forEach(row => {
+          if (!cvMap[row.link]) {
+            cvMap[row.link] = { nome: row.nome, pubInfo: {} };
+          }
+          const info = cvMap[row.link];
+          if (!info.pubInfo[row.ano]) info.pubInfo[row.ano] = [];
+          info.pubInfo[row.ano].push({
+            issn: row.issn,
+            title: row.titulo,
+            pubName: row.periodico,
+            qualis: row.qualis,
+            jcr: row.jcr,
+            baseYear: row.baseYear,
+          });
+        });
+
+        // 3) Prompt único para nome do grupo
+        let groupName = window.prompt("Digite o NOME do grupo para importação:");
+        if (!groupName) {
+          await chrome.storage.local.set({ lattes_data: initialLattesRef.current });
+          await chrome.storage.local.set({ groupData: initialGroupsRef.current });
+          setImportCvMap(null);
+          setImportGroupName("");
+          fileInputRef.current.value = '';
+          return;
+        }
+        groupName = groupName.trim();
+
+        // 4) Verifica existência e abre modal ou cria direto
+        const allGroups = await getGroups();
+        const exists     = Object.values(allGroups)
+          .some(g => g.name.trim().toLowerCase() === groupName.toLowerCase());
+
+        if (exists) {
+          setImportCvMap({ cvMap, groupName });
+          setImportGroupName(groupName);
+          setImportModalOpen(true);
+        } else {
+          await importGroupFromCsv(groupName, Object.keys(cvMap));
+          updateGroups();
+          alert(`Grupo "${groupName}" criado com sucesso!`);
+          setImportCvMap(null);
+          setImportGroupName("");
+          fileInputRef.current.value = '';
+        }
+      }
+    });
+  };
+
+
+
+  const handleImportGroupChoice = async (mode) => {
+    const { cvMap, groupName } = importCvMap;
+    setImportModalOpen(false);
+
+    // Função de rollback unificada
+    const rollback = async () => {
+      await chrome.storage.local.set({ lattes_data: initialLattesRef.current });
+      await chrome.storage.local.set({ groupData:    initialGroupsRef.current });
+    };
+
+    // 1) Se cancelou, reverte e sai
+    if (mode === 'cancel') {
+      await rollback();
+      setImportCvMap(null);
+      setImportGroupName("");
+      fileInputRef.current.value = "";
+      return;
+    }
+
+    try {
+      // 2) Importa/atualiza CVs conforme modo
+      const allData = await getLattesData();
+      for (const [link, { nome, pubInfo }] of Object.entries(cvMap)) {
+        if (!allData[link]) {
+          // sempre adiciona novos CVs
+          await importCVFromCsv(link, nome, pubInfo);
+        } else if (mode === 'overwriteAll') {
+          // sobrescreve todos os existentes
+          await importCVFromCsv(link, nome, pubInfo);
+        }
+        // modo 'addMissing' deixa os existentes intactos
+      }
+
+      // 3) Calcula o nome final do grupo
+      let finalName = groupName;
+      if (mode === 'rename') {
+        let newName = null;
+        do {
+          newName = window.prompt("Digite o NOVO nome do grupo:");
+          if (!newName) throw new Error("user-cancel");
+          newName = newName.trim();
+        } while (
+          Object.values(await getGroups())
+            .some(g => g.name.trim().toLowerCase() === newName.toLowerCase())
+        );
+        finalName = newName;
+      }
+
+      // 4) Cria ou atualiza o grupo conforme modo
+      let finalAuthors;
+      if (mode === 'overwriteAll' || mode === 'rename') {
+        // substitui todos pelos links do CSV
+        finalAuthors = Object.keys(cvMap);
+      } else if (mode === 'addMissing') {
+        // mescla existentes + novos
+        const existingGroups = await getGroups();
+        const entry = Object.entries(existingGroups)
+          .find(([, g]) => g.name.trim().toLowerCase() === groupName.toLowerCase());
+        const base = entry ? entry[1].authors : [];
+        finalAuthors = Array.from(new Set([...base, ...Object.keys(cvMap)]));
+      }
+
+      await importGroupFromCsv(finalName, finalAuthors);
+
+      updateGroups();
+      alert("Importação concluída com sucesso!");
+      setImportCvMap(null);
+      setImportGroupName("");
+      fileInputRef.current.value = '';
+    } catch (err) {
+      // rollback em qualquer erro ou user-cancel
+      await rollback();
+      setImportCvMap(null);
+      setImportGroupName("");
+      fileInputRef.current.value = '';
+      if (err.message !== "user-cancel") {
+        console.error(err);
+        alert("Ocorreu um erro. Tudo foi revertido.");
+      }
+    }
+  };
+
+
+
+
   return (
     <>
       <Container fluid className="mt-3 mb-3" expand="md">
@@ -172,18 +352,29 @@ const GroupList = ({
                 }}
               />
             </InputGroup>
-            <Button
-              color="white"
-              onClick={toggle}
-              size="sm"
-              style={{
-                width: '160px',
-                alignSelf: 'flex-start',
-                color: '#415e98'
-              }}
-            >
-              Criar novo grupo
-            </Button>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start'}}>
+              <Button
+                color="white"
+                onClick={toggle}
+                size="sm"
+                style={{
+                  width: '160px',
+                  color: '#415e98'
+                }}
+              >
+                Criar novo grupo
+              </Button>
+              <Button style={{width: '160px', color: '#415e98', marginLeft: 0}} color="white" size="sm" onClick={() => {fileInputRef.current.value = ""; fileInputRef.current.click()}}>
+                Importar Grupo
+              </Button>
+              <input
+                type="file"
+                accept=".csv"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleImportGroupFile}
+              />
+            </div>
           </FormGroup>
         </Form>
       </Container>
@@ -223,6 +414,51 @@ const GroupList = ({
           </div>
         </Row>
       </Container>
+      
+      <Modal isOpen={importModalOpen} toggle={() => setImportModalOpen(false)}>
+        <ModalHeader toggle={() => setImportModalOpen(false)}>
+          Importar Grupo "{importGroupName}"
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            placeholder="Escolha como tratar este grupo"
+            type="text"
+            readOnly
+            value={`Grupo: ${importGroupName}`}
+            style={{ marginBottom: '1rem' }}
+          />
+
+          <Button
+            color="primary"
+            block
+            onClick={() => handleImportGroupChoice('overwriteAll')}
+            style={{ marginBottom: '0.5rem' }}
+          >
+            Sobrescrever todos os membros
+          </Button>
+          <Button
+            color="primary"
+            block
+            onClick={() => handleImportGroupChoice('addMissing')}
+            style={{ marginBottom: '0.5rem' }}
+          >
+            Adicionar apenas membros faltantes
+          </Button>
+          <Button
+            color="primary"
+            block
+            onClick={() => handleImportGroupChoice('rename')}
+            style={{ marginBottom: '0.5rem' }}
+          >
+            Escolher outro nome
+          </Button>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => handleImportGroupChoice('cancel')}>
+            Cancelar
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* New group Modal */}
       <Modal isOpen={modal} toggle={toggle}>

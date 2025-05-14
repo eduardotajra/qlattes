@@ -46,7 +46,10 @@ const CVList = ({
 
   const handleImportFile = (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+      fileInputRef.current.value = "";
+      return;
+    }
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -70,6 +73,7 @@ const CVList = ({
           );
           if (!overwrite) {
             alert('Importação cancelada.');
+            fileInputRef.current.value = "";
             return;
           }
         }
@@ -90,6 +94,7 @@ const CVList = ({
         await importCVFromCsv(data[0].link, data[0].nome, pubInfo);
         updateAuthors();
         alert('Currículo importado com sucesso!');
+        fileInputRef.current.value = '';
       }
     });
   };
@@ -145,14 +150,16 @@ const CVList = ({
                   <Button
                     color="white"
                     size="sm"
-                    onClick={() => fileInputRef.current.click()}
+                    onClick={() =>{ 
+                      fileInputRef.current.value = "";
+                      fileInputRef.current.click();}}
                     style={{
                       width: '160px',
                       alignSelf: 'flex-start',
                       color: '#415e98'
                     }}
                   >
-                    <i className="fas fa-file-csv mr-1" /> Importar CSV
+                    <i className="fas fa-file-csv mr-1" /> Importar Currículo
                   </Button>
                   <input
                     type="file"
