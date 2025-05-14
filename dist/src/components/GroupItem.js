@@ -65,7 +65,7 @@ const GroupItem = ({
   // const handleGroupExport = () => {
   //   exportGroupCV(authors.map(author => author.link));
   // }
-  
+
   const handleGroupExportCsv = () => {
     exportGroupCsvForImport(authors.map(author => author.link));
   };
@@ -88,7 +88,7 @@ const GroupItem = ({
         <div>
           <i className="fas fa-pen mr-2" onClick={() => onEditGroupName && onEditGroupName(groupId, groupName)} style={{ fontSize: "14px", cursor: "pointer" }} title="Editar nome do grupo"/>
           {/* <i className="fas fa-file-csv mr-2" onClick={handleGroupExport} style={{fontSize: "14px", cursor: "pointer"}} hidden={authors < 1} title="Exportar dados dos CVs do grupo"/> */}
-          <i className="fas fa-file-csv mr-2" onClick={handleGroupExportCsv} hidden={authors.length < 1} style={{ cursor: 'pointer', fontSize: '14px' }} title="Exportar CSV completo do grupo"/>
+          <i className="fas fa-file-csv mr-2" onClick={handleGroupExportCsv} hidden={authors.length < 1} style={{ cursor: 'pointer', fontSize: '14px' }} title="Exportar dados dos CVs do grupo (CSV)"/>
           <i className="fas fa-trash-can mr-2" onClick={handleGroupDelete} style={{fontSize: "14px", cursor: "pointer"}} title="Remover grupo"/>
           <i className="fas fa-plus" style={{cursor: "pointer"}} onClick={toggle} title="Adicionar um CV ao grupo"/>
         </div>

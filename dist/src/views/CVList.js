@@ -136,6 +136,30 @@ const CVList = ({
                 }}
               />
             </InputGroup>
+            <div style={{ display: 'flex', alignSelf:'flex-start'}}>
+              <Button
+                color="white"
+                size="sm"
+                onClick={() =>{ 
+                  fileInputRef.current.value = "";
+                  fileInputRef.current.click();}}
+                style={{
+                  width: '160px',
+                  alignSelf: 'flex-start',
+                  color: '#415e98'
+                }}
+              >
+                {/* <i className="fas fa-file-csv mr-1" />  */}
+                Importar Currículo
+              </Button>
+              <input
+                type="file"
+                accept=".csv"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+              />
+            </div>
           </FormGroup>
         </Form>
       </Container>
@@ -146,30 +170,6 @@ const CVList = ({
             <Card className="shadow mt-3">
               <CardHeader className="bg-transparent" style={{ flexDirection: 'row', display: 'flex', justifyContent: "space-between", alignItems: 'center'}}>
                 <h3 className="mb-0">Currículos Carregados</h3>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <Button
-                    color="white"
-                    size="sm"
-                    onClick={() =>{ 
-                      fileInputRef.current.value = "";
-                      fileInputRef.current.click();}}
-                    style={{
-                      width: '160px',
-                      alignSelf: 'flex-start',
-                      color: '#415e98'
-                    }}
-                  >
-                    <i className="fas fa-file-csv mr-1" /> Importar Currículo
-                  </Button>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={handleImportFile}
-                  />
-                </div>
-
               </CardHeader>
               <CardBody>
                 <Row className="icon-examples">
