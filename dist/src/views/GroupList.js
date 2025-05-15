@@ -12,7 +12,10 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
-  ModalFooter
+  ModalFooter,
+  Card,
+  CardHeader,
+  CardBody,
 } from "reactstrap";
 import GroupItem from "components/GroupItem";
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -333,7 +336,7 @@ const GroupList = ({
 
   return (
     <>
-      <Container fluid className="mt-3" expand="md">
+      <Container fluid className="mt-3 mb-2" expand="md">
         <Form className="navbar-search navbar-search-dark form-inline mr-3 d-md-flex">
           <FormGroup className="w-100" style={{ justifyContent: 'space-between' }}>
             <InputGroup className="input-group-alternative" style={{ width:"56.6em", border: 'none', backgroundColor: 'white' }}>
@@ -457,35 +460,46 @@ const GroupList = ({
       <Container className="mb-5" fluid>
         <Row>
           <div className="col">
-            {Object.entries(localGroups).map(group => {
-              if (selectedOption?.authors && group[1].name !== selectedOption.name) return null;
+            <Card className="shadow mt-3">
+              <CardHeader className="bg-transparent" style={{ flexDirection: 'row', display: 'flex', justifyContent: "space-between", alignItems: 'center'}}>
+                <h3 className="mb-0">Grupos Criados</h3>
+              </CardHeader>
+              <CardBody style={{paddingTop:'8px'}}>
+                <Row>
+                  <div className="col">
+                    {Object.entries(localGroups).map(group => {
+                      if (selectedOption?.authors && group[1].name !== selectedOption.name) return null;
 
-              let groupAuthors = group[1].authors
-                .filter(link => localAuthors[link])
-                .map(link => ({ link, name: localAuthors[link].name }));
+                      let groupAuthors = group[1].authors
+                        .filter(link => localAuthors[link])
+                        .map(link => ({ link, name: localAuthors[link].name }));
 
-              if (selectedOption?.link) {
-                groupAuthors = groupAuthors.filter(item => item.link === selectedOption.link);
-                if(groupAuthors.length === 0) return null;
-              }
+                      if (selectedOption?.link) {
+                        groupAuthors = groupAuthors.filter(item => item.link === selectedOption.link);
+                        if(groupAuthors.length === 0) return null;
+                      }
 
-              return <GroupItem
-                key={group[0]}
-                groupId={group[0]}
-                groupName={group[1].name}
-                allAuthors={Object.entries(localAuthors)
-                  .filter(author => !group[1].authors.includes(author[0]))
-                  .map(([link, author]) => ({link, name: author.name}))}
-                authors={groupAuthors}
-                updateGroups={updateGroups}
-                allQualisScores={allQualisScores}
-                onEditGroupName={(groupId, currentName) => {
-                  setEditingGroupId(groupId);
-                  setEditingGroupName(currentName);
-                  setEditModalOpen(true);
-                }}
-              />
-            })}
+                      return <GroupItem
+                        key={group[0]}
+                        groupId={group[0]}
+                        groupName={group[1].name}
+                        allAuthors={Object.entries(localAuthors)
+                          .filter(author => !group[1].authors.includes(author[0]))
+                          .map(([link, author]) => ({link, name: author.name}))}
+                        authors={groupAuthors}
+                        updateGroups={updateGroups}
+                        allQualisScores={allQualisScores}
+                        onEditGroupName={(groupId, currentName) => {
+                          setEditingGroupId(groupId);
+                          setEditingGroupName(currentName);
+                          setEditModalOpen(true);
+                        }}
+                      />
+                    })}
+                  </div>
+                </Row>
+              </CardBody>
+            </Card>
           </div>
         </Row>
       </Container>

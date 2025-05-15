@@ -196,7 +196,7 @@ const CVList = ({
                 <h3 className="mb-0">Currículos Carregados</h3>
               </CardHeader>
               <CardBody>
-                <Row className="icon-examples">
+                <Row className="icon-examples" style={{marginTop:0}}>
                   {filteredAuthors.map(author => <CVItem authorName={author.name} CVLink={author.link} key={author.link} allQualisScores={allQualisScores} updateAuthors={updateCurrAuthors}/>)}
                 </Row>
               </CardBody>
