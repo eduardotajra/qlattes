@@ -104,9 +104,9 @@ const CVList = ({
       <Container fluid className="mt-3 mb-3" expand="md">
         <Form className="navbar-search navbar-search-dark form-inline mr-3 d-md-flex">
           <FormGroup className="w-100" style={{ justifyContent: 'space-between' }}>
-            <InputGroup className="input-group-alternative" style={{ width:"400px", border: 'none', backgroundColor: 'white' }}>
+            <InputGroup className="input-group-alternative" style={{ width:"56.6em", border: 'none', backgroundColor: 'white' }}>
               <InputGroupAddon addonType="prepend">
-                <InputGroupText>
+                <InputGroupText style={{paddingLeft: '18px'}}>
                   <i className="fas fa-search" style={{ color: '#415e98' }}/>
                 </InputGroupText>
               </InputGroupAddon>
@@ -123,7 +123,31 @@ const CVList = ({
                   />
                 )}
                 sx={{
-                  width: '80%',
+                  flex:1,
+                  position: "relative",
+                  // 1) Espaço extra à direita para não sobrepor o texto
+                  "& .MuiAutocomplete-inputRoot": {
+                    paddingRight: "2.5rem",
+                  },
+                  // 2) Container que engloba os ícones (clear + dropdown)
+                  "& .MuiAutocomplete-endAdornment": {
+                    position: "absolute",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  },
+                  "& .MuiOutlinedInput-root .MuiAutocomplete-endAdornment": {
+                    marginRight: "1em",               // agora fica mais específico
+                    right: 0
+                  },
+                  // 3) Ícone de limpar (X) posicionado antes da setinha
+                  "& .MuiAutocomplete-clearIndicator": {
+                    marginRight: "0.5rem",
+                    padding: 0,
+                  },
+                  // 4) Ícone de dropdown colado à borda
+                  "& .MuiAutocomplete-popupIndicator": {
+                    padding: 0,
+                  },
                   '& .MuiButtonBase-root': {
                       color: '#415e98',
                   },

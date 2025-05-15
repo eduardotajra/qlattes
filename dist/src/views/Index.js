@@ -23,7 +23,6 @@ import {
   getQualisStats,
   addMissingYearsToAuthorStats,
 } from "../utils";
-import { Popper } from "@mui/material";
 
 const Index = ({
   authors,
@@ -539,7 +538,7 @@ const Index = ({
               }}
             >
               <InputGroupAddon addonType="prepend">
-                <InputGroupText>
+                <InputGroupText style={{paddingLeft: '18px'}}>
                   <i className="fas fa-magnifying-glass" style={{ color: "#415e98" }} />
                 </InputGroupText>
               </InputGroupAddon>
@@ -604,7 +603,31 @@ const Index = ({
                   }
                 }}
                 sx={{
-                  width: "95%",
+                  flex:1,
+                  position: "relative",
+                  // 1) Espaço extra à direita para não sobrepor o texto
+                  "& .MuiAutocomplete-inputRoot": {
+                    paddingRight: "2.5rem",
+                  },
+                  // 2) Container que engloba os ícones (clear + dropdown)
+                  "& .MuiAutocomplete-endAdornment": {
+                    position: "absolute",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  },
+                  "& .MuiOutlinedInput-root .MuiAutocomplete-endAdornment": {
+                    marginRight: "1em",               // agora fica mais específico
+                    right: 0
+                  },
+                  // 3) Ícone de limpar (X) posicionado antes da setinha
+                  "& .MuiAutocomplete-clearIndicator": {
+                    marginRight: "0.5rem",
+                    padding: 0,
+                  },
+                  // 4) Ícone de dropdown colado à borda
+                  "& .MuiAutocomplete-popupIndicator": {
+                    padding: 0,
+                  },
                   "& .MuiButtonBase-root": { color: "#415e98"},
                   "& .MuiInputBase-input": { color: "#415e98" },
                   "& fieldset": { border: "none" },

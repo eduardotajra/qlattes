@@ -12,15 +12,17 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
-  ModalFooter,
+  ModalFooter
 } from "reactstrap";
 import GroupItem from "components/GroupItem";
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 
 import Papa from 'papaparse';
 
 import Autocomplete from '@mui/material/Autocomplete';
+import ListSubheader from "@mui/material/ListSubheader";
 import TextField from '@mui/material/TextField';
+import Box from "@mui/material/Box";
 
 import {
   importGroupFromCsv,
@@ -57,6 +59,21 @@ const GroupList = ({
 
   const initialLattesRef = useRef(null);
   const initialGroupsRef = useRef(null);
+
+  const [cvOptions, setCvOptions] = useState([]);
+  
+    useEffect(() => {
+      const authorsNameLinkWithGroup = authorsNameLink.map((author) => ({
+        ...author,
+        groupType: "Autores",
+      }));
+      const groupsWithGroup = Object.values(groups).map((grp) => ({
+        ...grp,
+        groupType: "Grupos",
+      }));
+      const combined = [...authorsNameLinkWithGroup, ...groupsWithGroup];
+      setCvOptions(combined);
+    }, [authorsNameLink, groups]);
 
   // Atualiza localGroups quando groups muda
   useEffect(() => {
@@ -316,21 +333,56 @@ const GroupList = ({
 
   return (
     <>
-      <Container fluid className="mt-3 mb-3" expand="md">
+      <Container fluid className="mt-3" expand="md">
         <Form className="navbar-search navbar-search-dark form-inline mr-3 d-md-flex">
           <FormGroup className="w-100" style={{ justifyContent: 'space-between' }}>
-            <InputGroup className="input-group-alternative" style={{ width:"400px", border: 'none', backgroundColor: 'white' }}>
+            <InputGroup className="input-group-alternative" style={{ width:"56.6em", border: 'none', backgroundColor: 'white' }}>
               <InputGroupAddon addonType="prepend">
-                <InputGroupText>
+                <InputGroupText style={{paddingLeft: '18px'}}>
                   <i className="fas fa-search" style={{ color: '#415e98' }}/>
                 </InputGroupText>
               </InputGroupAddon>
               <Autocomplete
                 onChange={searchGroupOrAuthor}
-                options={authorsNameLink.concat(Object.values(localGroups))}
+                options={cvOptions}
                 getOptionLabel={(option) => option.name}
                 filterSelectedOptions
                 noOptionsText="Não há CVs ou grupos disponíveis"
+                ListboxProps={{
+                  sx: {
+                    paddingTop: 0,
+                  }
+                }}
+                groupBy={(option) => option.groupType}
+                renderGroup={(params) => {
+                  const { group, children, key } = params;
+                  return (
+                    <React.Fragment key={key}>
+                      <ListSubheader
+                        component="div"
+                        sx={{
+                          backgroundColor: "#fff",
+                          fontWeight: "bold",
+                          color: "#000",
+                        }}
+                      >
+                        {group}
+                      </ListSubheader>
+                      <Box sx={{ ml: 2 }}>{children}</Box>
+                    </React.Fragment>
+                  );
+                }}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    {option.groupType === "Autores" && (
+                      <i className="fas fa-user" style={{ marginRight: "8px", color: "#415e98" }}></i>
+                    )}
+                    {option.groupType === "Grupos" && (
+                      <i className="fa-solid fa-users" style={{ marginRight: "8px", color: "#415e98" }}></i>
+                    )}
+                    {option.name}
+                  </li>
+                )}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -338,10 +390,33 @@ const GroupList = ({
                   />
                 )}
                 sx={{
-                  width: '80%',
+                  flex:1,
+                  position: "relative",
+                  // 1) Espaço extra à direita para não sobrepor o texto
+                  "& .MuiAutocomplete-inputRoot": {
+                    paddingRight: "2.5rem",
+                  },
+                  // 2) Container que engloba os ícones (clear + dropdown)
+                  "& .MuiAutocomplete-endAdornment": {
+                    position: "absolute",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  },
+                  "& .MuiOutlinedInput-root .MuiAutocomplete-endAdornment": {
+                    marginRight: "1em",               // agora fica mais específico
+                    right: 0
+                  },
+                  // 3) Ícone de limpar (X) posicionado antes da setinha
+                  "& .MuiAutocomplete-clearIndicator": {
+                    marginRight: "0.5rem",
+                    padding: 0,
+                  },
+                  // 4) Ícone de dropdown colado à borda
+                  "& .MuiAutocomplete-popupIndicator": {
+                    padding: 0,
+                  },
                   '& .MuiButtonBase-root': {
-                      display: 'none',
-                      color: '#415e98',
+                      color: '#415e98'
                   },
                   '& .MuiInputBase-input': {
                       color: '#415e98',

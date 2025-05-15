@@ -54,7 +54,7 @@ const Sidebar = (props) => {
           <span className="navbar-toggler-icon" />
         </button>
         {/* Logo */}
-        <NavbarBrand className="pt-0" {...navbarBrandProps}>
+        <NavbarBrand className="pt-0" style={{paddingBottom:0}} {...navbarBrandProps}>
           <img
             alt={logo.imgAlt}
             className="navbar-brand-img"
@@ -63,6 +63,8 @@ const Sidebar = (props) => {
         </NavbarBrand>
         {/* Collapse */}
         <Collapse navbar isOpen={collapseOpen}>
+          {/* Heading - Configurações */}
+          <h6 className="navbar-heading text-muted">Início</h6>
           {/* Navigation - Visualização */}
           <Nav navbar>
             <NavItem className="mb-md-3 ml-1" navbar="true">
