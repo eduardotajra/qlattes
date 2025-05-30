@@ -50,7 +50,6 @@ const DataGraph = ({
   isUnifiedChart = false,
   isParetoChart = false,
   showConsolidado = false,
-  orderMode = 'selection',
   selectedCVs = [],
   onTotalStatsReady = () => {},
 }) => {
@@ -384,9 +383,10 @@ const DataGraph = ({
       xTitle,
       yTitle,
       areaData,
-      isUnifiedChart,
-      orderMode
+      isUnifiedChart
     );
+    
+
     
     
     // console.log('graphicConfig:', graphicConfig);

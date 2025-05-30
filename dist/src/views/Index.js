@@ -42,8 +42,6 @@ const Index = ({
   const [showIndividual, setShowIndividual] = useChromeState("showIndividual",false);
   const [showUnificado, setShowUnificado] = useChromeState("showUnificado",false);
 
-  const [orderMode, setOrderMode] = useChromeState("orderMode", "selection");
-
   const [selectedCVs, setSelectedCVs] = useChromeState("selectedCVs",[]);
 
   const [initYear, setInitYear] = useChromeState("initYear",0);
@@ -885,25 +883,6 @@ const Index = ({
                     </option>
                   </Input>
                 </InputGroup>
-                {showAll && canShowParetoCVView && ["qualisGraphic","scoreGraphic"].includes(viewType) && !showConsolidado && (
-                  <InputGroup className="input-group-alternative mt-3" style={{ marginRight: "15px", border: "none", backgroundColor: "white" }}>
-                    <InputGroupAddon addonType="prepend">
-                      <InputGroupText>
-                        <i className="fas fa-sort" style={{ color: "#415e98" }} />
-                      </InputGroupText>
-                    </InputGroupAddon>
-                    <Input
-                      type="select"
-                      value={orderMode}
-                      onChange={e => setOrderMode(e.target.value)}
-                      style={{ marginRight: "15px", color: "#415e98", backgroundColor: "white" }}
-                    >
-                      <option value="selection">Mostrar por ordem de seleção</option>
-                      <option value="asc">Mostrar por ordem de produção (crescente)</option>
-                      <option value="desc">Mostrar por ordem de produção (decrescente)</option>
-                    </Input>
-                  </InputGroup>
-                )}
               </FormGroup>
 
               {/* Statistics */}
@@ -1100,7 +1079,6 @@ const Index = ({
                     isUnifiedChart={showUnificado}
                     showConsolidado={showConsolidado}      // << NOVO
                     selectedCVs={selectedCVs}  
-                    orderMode={orderMode}
                     onTotalStatsReady={setTotalStatsFromGraph}
                   />
                 )}
@@ -1218,7 +1196,6 @@ const Index = ({
                     areaData={areaData}
                     showConsolidado={showConsolidado}      // << NOVO
                     selectedCVs={selectedCVs}  
-                    orderMode={orderMode}
                     onTotalStatsReady={setTotalStatsFromGraph}
                   />
                 )}

@@ -672,8 +672,7 @@ export function getBarChatInfo(
   xTitle,
   yTitle,
   areaData,
-  isUnifiedChart = false,
-  orderMode = 'selection'
+  isUnifiedChart = false
 ) {
   // Show the data in a stacked bar chart
   const baseColorPalette = [
@@ -723,12 +722,30 @@ export function getBarChatInfo(
   };
 
   console.log('dataCounts:', dataCounts);
+
+  if (isUnifiedChart) {
+    const sortedKeys = Object.keys(dataCounts)
+      .map((name) => {
+        const totalSum = Object.values(dataCounts[name])
+          .flatMap(obj => Object.values(obj))
+          .reduce((acc, val) => acc + val, 0);
+        return { name, totalSum };
+      })
+      .sort((a, b) => a.totalSum - b.totalSum)
+      .map((item) => item.name);
+  
+    // Recria os dataCounts ordenados
+    const sortedDataCounts = {};
+    sortedKeys.forEach((key) => {
+      sortedDataCounts[key] = dataCounts[key];
+    });
+  
+    dataCounts = sortedDataCounts;
+  }
   
 
   let datasets = [];
-  let dataKeys = Object.keys(dataCounts);
-  
-
+  const dataKeys = Object.keys(dataCounts);
 
   dataKeys.forEach((name, index) => {
     // Choose the base color and fill pattern for this stack
@@ -901,32 +918,6 @@ export function getBarChatInfo(
           .map((year) => year.toString()),
     datasets,
   };
-
-    // --- Ordenação dinâmica de anos pelo total das barras ---
-  if (orderMode !== 'selection') {
-    // labels originais e datasets
-    const { labels, datasets } = data;
-
-    // 1) calcula soma total de cada barra empilhada
-    const totalPorBarra = labels.map((_, idx) =>
-      datasets.reduce((soma, ds) => soma + ds.data[idx], 0)
-    );
-
-    // 2) monta array de índices [0,1,2,…] e ordena por totalPorBarra
-    const indicesOrdenados = totalPorBarra
-      .map((total, idx) => ({ total, idx }))
-      .sort((a, b) =>
-        orderMode === 'asc' ? a.total - b.total : b.total - a.total
-      )
-      .map(obj => obj.idx);
-
-    // 3) reordena labels e cada dataset.data
-    data.labels = indicesOrdenados.map(i => labels[i]);
-    datasets.forEach(ds => {
-      ds.data = indicesOrdenados.map(i => ds.data[i]);
-    });
-  }
-
 
   return { options, data };
 }
