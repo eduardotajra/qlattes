@@ -71,15 +71,18 @@ const GroupItem = ({
   };
 
   const handleGroupDelete = async (e) => {
-    let result;
-    result = window.confirm(`Confirma a remoção do grupo ${groupName}?\n\nUma vez confirmada, o grupo será removido, mas os dados dos currículos permanecerão disponíveis.`)
-    if(result) {
-      await deleteGroup(groupId);
-      updateGroups();
-    }else {
-      e.preventDefault();
+    const result = window.confirm(
+      `Confirma a remoção do grupo ${groupName}?\n\nUma vez confirmada, o grupo será removido, mas os dados dos currículos permanecerão disponíveis.`
+    );
+    if (!result) {
+      e?.preventDefault?.();
+      return;
     }
-  }
+    await deleteGroup(groupId);
+    // Aguarda a atualização do pai (se for assíncrona)
+    await Promise.resolve(updateGroups?.());
+  };
+
 
   return (
     <Card className="shadow mt-3">

@@ -160,7 +160,7 @@ const CVList = ({
                 }}
               />
             </InputGroup>
-            <div style={{ display: 'flex', alignSelf:'flex-start'}}>
+            <div style={{ display: 'flex'}}>
               <Button
                 color="white"
                 size="sm"

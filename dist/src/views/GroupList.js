@@ -82,8 +82,11 @@ const GroupList = ({
   useEffect(() => {
     if (groups && Object.keys(groups).length > 0) {
       setLocalGroups(groups);
+    } else {
+      setLocalGroups({}); // zera corretamente quando não há grupos
     }
   }, [groups]);
+
 
   // Atualiza localAuthors quando authors muda
   useEffect(() => {
@@ -130,9 +133,8 @@ const GroupList = ({
   const toggle = () => setModal(!modal);
 
   const handleNewButton = async () => {
-    let groupsData = await chrome.storage.local.get('groupData')
-    const grupos = groupsData['groupData'];
-    const nomesGrupos = Object.values(grupos).map(grupo => grupo.name);
+    const { groupData = {} } = await chrome.storage.local.get('groupData');
+    const nomesGrupos = Object.values(groupData).map(g => (g?.name ?? '').trim()).filter(Boolean);
 
     const nomeJaExiste = nomesGrupos.some(
       nome => nome.toLowerCase() === newGroupName.toLowerCase()

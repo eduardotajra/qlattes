@@ -281,7 +281,7 @@ const DataGraph = ({
 
 
   if (isParetoChart) {
-    xTitle = `Autores mais produtivos (${init} - ${end})`;
+    xTitle = `Posição percentual no grupo (0% → 100%)`;
     yTitle = 'Percentual acumulado da produção (estrato geral)';
     graphicConfig = getParetoChartInfo(unifiedDataCounts, xTitle, yTitle);
 

@@ -922,122 +922,226 @@ export function getBarChatInfo(
   return { options, data };
 }
 
-export function getParetoChartInfo(dataCounts, xTitle, yTitle) {
   // Interpolação linear para índices fracionários
-  function getInterpolatedValue(values, xFloat) {
-    if (xFloat <= 0) return values[0];
-    if (xFloat >= values.length - 1) return values[values.length - 1];
-    const lower = Math.floor(xFloat);
-    const upper = Math.ceil(xFloat);
-    if (lower === upper) return values[lower];
-    const alpha = xFloat - lower;
-    return values[lower] + alpha * (values[upper] - values[lower]);
+  // function getInterpolatedValue(values, xFloat) {
+  //   if (xFloat <= 0) return values[0];
+  //   if (xFloat >= values.length - 1) return values[values.length - 1];
+  //   const lower = Math.floor(xFloat);
+  //   const upper = Math.ceil(xFloat);
+  //   if (lower === upper) return values[lower];
+  //   const alpha = xFloat - lower;
+  //   return values[lower] + alpha * (values[upper] - values[lower]);
+  // }
+
+// utils/getParetoChartInfo.js
+export function getParetoChartInfo(dataCountsOrSeries, xTitle, yTitle) {
+  // --- Utilidades comuns ---
+  function abbreviatePortugueseName(name) {
+    // reuse a sua função real; placeholder para evitar erros aqui
+    return name;
   }
 
-  // Monta array de { name, value }
-  const dataArray = Object.keys(dataCounts).map(name => {
-    const total = Object.values(dataCounts[name])
-                        .reduce((sum, e) => sum + e.allyears, 0);
-    return { name, value: total };
-  });
-  dataArray.sort((a, b) => b.value - a.value);
+  // Interpola Y para um X alvo, dado arrays ordenados xs/ys
+  function interpYAtX(xsArr, ysArr, xq) {
+    if (xq <= xsArr[0]) return ysArr[0];
+    if (xq >= xsArr[xsArr.length - 1]) return ysArr[ysArr.length - 1];
+    let i = 0;
+    while (i < xsArr.length - 1 && xsArr[i + 1] < xq) i++;
+    const x0 = xsArr[i],   y0 = ysArr[i];
+    const x1 = xsArr[i+1], y1 = ysArr[i+1];
+    const t = (xq - x0) / (x1 - x0);
+    return y0 + t * (y1 - y0);
+  }
 
-  // Labels e percentuais cumulativos
-  const totalAll = dataArray.reduce((s, it) => s + it.value, 0);
-  const labels = [];
-  const cumulative = [];
-  let run = 0;
-  dataArray.forEach(item => {
-    labels.push(abbreviatePortugueseName(item.name));
-    run += item.value;
-    cumulative.push(parseFloat(((run / totalAll) * 100).toFixed(1)));
-  });
+  // Constrói uma curva (xs, ys, points) a partir de um mapeamento { autor -> contagens }
+  function buildCurveFromCounts(singleSeriesCounts) {
+    // singleSeriesCounts[autor] = { A: {...}, B: {...}, C: {...}, N: {...}, tot: { allyears: number }, ... }
+    const dataArray = Object.keys(singleSeriesCounts).map(name => {
+      const total = Object.values(singleSeriesCounts[name])
+        .reduce((sum, e) => sum + (typeof e === 'object' && 'allyears' in e ? (e.allyears || 0) : 0), 0);
+      return { name, value: total };
+    }).sort((a, b) => b.value - a.value);
 
-  // Índices fracionários exatos
-  const n = dataArray.length;
-  const p10Idx = n * 0.1 - 1;
-  const p25Idx = n * 0.25 - 1;
-  const p50Idx = n * 0.5 - 1;
+    const n = dataArray.length;
+    if (n === 0) {
+      return { xs: [], ys: [], points: [] };
+    }
 
-  // Valores interpolados
-  const p10Y = getInterpolatedValue(cumulative, p10Idx);
-  const p25Y = getInterpolatedValue(cumulative, p25Idx);
-  const p50Y = getInterpolatedValue(cumulative, p50Idx);
+    const totalAll = dataArray.reduce((s, it) => s + it.value, 0);
+    let run = 0;
 
-  // Configuração Chart.js
+    const xs = [];
+    const ys = [];
+    const points = [];
+
+    dataArray.forEach((item, i) => {
+      run += item.value;
+      const y = totalAll > 0 ? +(((run / totalAll) * 100).toFixed(1)) : 0;  // acumulado %
+      const x = +((((i + 1) / n) * 100).toFixed(1));                         // posição %
+
+      xs.push(x);
+      ys.push(y);
+
+      points.push({
+        x, y,
+        name: item.name,
+        short: abbreviatePortugueseName(item.name)
+      });
+    });
+
+    // Garante origem e fechamento
+    if (xs[0] !== 0) {
+      xs.unshift(0); ys.unshift(0);
+      points.unshift({ x: 0, y: 0, name: '' });
+    }
+    if (xs[xs.length - 1] !== 100 || ys[ys.length - 1] !== 100) {
+      xs.push(100); ys.push(100);
+      points.push({ x: 100, y: 100, name: '' });
+    }
+
+    return { xs, ys, points };
+  }
+
+  // Detecta se é multi-séries: quando cada valor de primeiro nível é um objeto "single series"
+  const firstVal = dataCountsOrSeries ? Object.values(dataCountsOrSeries)[0] : undefined;
+  const isMultiSeries =
+    firstVal &&
+    typeof firstVal === 'object' &&
+    // Heurística: numa série plana, cada valor interno tem campos A/B/C/N/tot etc. No multi, o "valor" é outro "mapa de autores".
+    // Se o firstVal possuir algum autor com chave 'tot' (ou A/B...), consideramos single; caso contrário, é multi.
+    !('tot' in firstVal) &&
+    Object.values(firstVal).length > 0 &&
+    typeof Object.values(firstVal)[0] === 'object' &&
+    ('tot' in Object.values(firstVal)[0]);
+
+  // Paleta simples para várias linhas
+  const palette = [
+    'rgb(75, 192, 192)',
+    'rgb(255, 99, 132)',
+    'rgb(54, 162, 235)',
+    'rgb(255, 159, 64)',
+    'rgb(153, 102, 255)',
+    'rgb(255, 205, 86)',
+    'rgb(201, 203, 207)',
+    'rgb(99, 255, 132)',
+  ];
+
+  let datasets = [];
+  let p10Label = 'P10', p25Label = 'P25', p50Label = 'P50';
+
+  if (isMultiSeries) {
+    // --- MODO MULTI-SÉRIES: cada chave de nível superior é um grupo ---
+    const seriesNames = Object.keys(dataCountsOrSeries);
+    const curves = seriesNames.map((seriesName) => {
+      const curve = buildCurveFromCounts(dataCountsOrSeries[seriesName]);
+      return { seriesName, ...curve };
+    });
+
+    // Calcula percentis (labels) com base na primeira série (opção mais limpa visualmente)
+    if (curves.length > 0 && curves[0].xs.length > 1) {
+      const { xs, ys } = curves[0];
+      const p10Y = +interpYAtX(xs, ys, 10).toFixed(1);
+      const p25Y = +interpYAtX(xs, ys, 25).toFixed(1);
+      const p50Y = +interpYAtX(xs, ys, 50).toFixed(1);
+      p10Label = `P10 (${p10Y.toFixed(1)}%)`;
+      p25Label = `P25 (${p25Y.toFixed(1)}%)`;
+      p50Label = `P50 (${p50Y.toFixed(1)}%)`;
+    }
+
+    datasets = curves.map((c, idx) => ({
+      label: c.seriesName,
+      data: c.points,
+      borderColor: palette[idx % palette.length],
+      backgroundColor: palette[idx % palette.length],
+      fill: false,
+      borderWidth: 2,
+      pointRadius: (ctx) => (ctx?.raw?.x === 0) ? 0 : 3, // mostra 100%, esconde 0%
+      pointHoverRadius: (ctx) => (ctx?.raw?.x === 0) ? 0 : 6,
+      pointHitRadius: 8,
+      pointStyle: 'circle',
+      tension: 0.25,
+      clip: false
+    }));
+  } else {
+    // --- MODO UMA SÉRIE (comportamento anterior) ---
+    const { xs, ys, points } = buildCurveFromCounts(dataCountsOrSeries);
+
+    // Percentis p/ os rótulos das anotações
+    const p10Y = +interpYAtX(xs, ys, 10).toFixed(1);
+    const p25Y = +interpYAtX(xs, ys, 25).toFixed(1);
+    const p50Y = +interpYAtX(xs, ys, 50).toFixed(1);
+    p10Label = `P10 (${p10Y.toFixed(1)}%)`;
+    p25Label = `P25 (${p25Y.toFixed(1)}%)`;
+    p50Label = `P50 (${p50Y.toFixed(1)}%)`;
+
+    datasets = [{
+      label: '',
+      data: points,
+      borderColor: palette[0],
+      backgroundColor: palette[0],
+      fill: false,
+      borderWidth: 2,
+      pointRadius: (ctx) => (ctx?.raw?.x === 0) ? 0 : 3, // mostra 100%, esconde 0%
+      pointHoverRadius: (ctx) => (ctx?.raw?.x === 0) ? 0 : 6,
+      pointHitRadius: 8,
+      pointStyle: 'circle',
+      tension: 0.25,
+      clip: false
+    }];
+  }
+
+  // --- Opções comuns com “respiro” e ticks fixos 0..100 ---
   const options = {
     responsive: true,
-    maintainAspectRatio: true, // volta a respeitar proporção
-    aspectRatio: 2,            // largura/altura = 2:1
+    maintainAspectRatio: true,
+    aspectRatio: 2,
     plugins: {
-      annotation: {
-        annotations: {
-          p10: {
-            type: 'line',
-            xMin: p10Idx, xMax: p10Idx,
-            borderColor: 'rgb(255, 99, 132)', borderWidth: 2, borderDash: [6,6],
-            label: {
-              display: true,
-              content: `P10 (${p10Y.toFixed(1)}%)`,
-              position: 'end', yAdjust: -10,
-              backgroundColor: 'rgba(255,255,255,0.7)', color: 'rgb(255, 99, 132)'
-            }
-          },
-          p25: {
-            type: 'line',
-            xMin: p25Idx, xMax: p25Idx,
-            borderColor: 'rgb(54, 162, 235)', borderWidth: 2, borderDash: [6,6],
-            label: {
-              display: true,
-              content: `P25 (${p25Y.toFixed(1)}%)`,
-              position: 'end', yAdjust: -10,
-              backgroundColor: 'rgba(255,255,255,0.7)', color: 'rgb(54, 162, 235)'
-            }
-          },
-          p50: {
-            type: 'line',
-            xMin: p50Idx, xMax: p50Idx,
-            borderColor: 'rgb(75, 192, 192)', borderWidth: 2, borderDash: [6,6],
-            label: {
-              display: true,
-              content: `P50 (${p50Y.toFixed(1)}%)`,
-              position: 'end', yAdjust: -10,
-              backgroundColor: 'rgba(255,255,255,0.7)', color: 'rgb(75, 192, 192)'
-            }
-          }
+      legend: { display: isMultiSeries }, // mostra legenda só no multi
+      tooltip: {
+        callbacks: {
+          title: (items) => items?.[0]?.raw?.name ?? '',
+          label: (item) => `Posição: ${item.raw.x}% | Acum.: ${item.raw.y}%`
         }
       },
-      legend: { display: false }
+      title: { display: false }
     },
+    layout: { padding: { right: 4, top: 2 } },
     scales: {
       x: {
+        type: 'linear',
+        min: 0,
+        max: 100.5,      // respiro horizontal
+        suggestedMax: 100.5,
         title: { display: true, text: xTitle },
+        afterBuildTicks(scale) {
+          scale.ticks = Array.from({ length: 11 }, (_, i) => ({ value: i * 10 }));
+        },
         ticks: {
-          autoSkip: false,
-          maxTicksLimit: 8,
-          maxRotation: 90,
-          minRotation: 45,
+          callback: (v) => `${v}%`,
+          stepSize: 10,
           font: { size: 10 }
-        }
+        },
+        grid: { drawOnChartArea: false }
       },
       y: {
         beginAtZero: true,
-        title: { display: true, text: yTitle }
+        max: 101,        // respiro vertical (100% visível)
+        suggestedMax: 101,
+        title: { display: true, text: yTitle },
+        afterBuildTicks(scale) {
+          scale.ticks = Array.from({ length: 11 }, (_, i) => ({ value: i * 10 }));
+        },
+        ticks: {
+          callback: (v) => `${v}%`,
+          stepSize: 10
+        }
       }
     }
   };
 
-  const data = {
-    labels,
-    datasets: [{
-      label: '',
-      data: cumulative,
-      backgroundColor: 'rgb(75, 192, 192)'
-    }]
-  };
-
-  return { options, data };
+  return { options, data: { datasets } };
 }
+
 
 
 // Helper function to Update the alpha channel of an RGBA color string

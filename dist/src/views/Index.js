@@ -86,6 +86,20 @@ const Index = ({
   }
   
 
+  function buildGroupMembersByName(selectedCVs, authors) {
+    const map = {};
+    selectedCVs
+      .filter(item => item.groupType === "Grupos" && Array.isArray(item.authors))
+      .forEach(groupItem => {
+        const names = groupItem.authors
+          .map(link => authors[link]?.name)
+          .filter(Boolean);
+        if (names.length > 0) {
+          map[groupItem.name] = names;
+        }
+      });
+    return map;
+  }
 
 
 
@@ -519,8 +533,7 @@ const Index = ({
   }
   
   
-
-
+  const groupMembersByName = buildGroupMembersByName(selectedCVs, authors);
   
 
   return (
