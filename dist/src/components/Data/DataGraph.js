@@ -52,6 +52,8 @@ const DataGraph = ({
   showConsolidado = false,
   selectedCVs = [],
   onTotalStatsReady = () => {},
+  groupMembersByName = {},
+  paretoPorGrupo = false,
 }) => {
   console.log('stats:', stats);
   const chartRef = useRef(null);
@@ -281,11 +283,215 @@ const DataGraph = ({
 
 
   if (isParetoChart) {
-    xTitle = `Posição percentual no grupo (0% → 100%)`;
-    yTitle = 'Percentual acumulado da produção (estrato geral)';
-    graphicConfig = getParetoChartInfo(unifiedDataCounts, xTitle, yTitle);
+    const palette = [
+      'rgb(75, 192, 192)',
+      'rgb(255, 99, 132)',
+      'rgb(54, 162, 235)',
+      'rgb(255, 159, 64)',
+      'rgb(153, 102, 255)',
+      'rgb(255, 205, 86)',
+      'rgb(201, 203, 207)',
+      'rgb(99, 255, 132)',
+    ];
 
-    // console.log('graphicConfig:', graphicConfig);
+    // 1) Base SEMPRE por autor, e garanta allyears
+    const countsByAuthor = {};
+    for (const author of Object.keys(filteredDataCounts)) {
+      countsByAuthor[author] = {};
+      for (const key of Object.keys(filteredDataCounts[author])) {
+        const obj = filteredDataCounts[author][key] || {};
+        const allyears = ('allyears' in obj && typeof obj.allyears === 'number')
+          ? obj.allyears
+          : Object.values(obj).reduce((acc, v) => acc + (typeof v === 'number' ? v : 0), 0);
+        countsByAuthor[author][key] = { ...obj, allyears };
+      }
+    }
+
+    const fmtX = (v) => {
+      if (v >= 99.5) return 100;
+      if (v <= 0.5) return 0;
+      return +v.toFixed(1);
+    };
+
+    // 2) Helper: curva Pareto a partir de um conjunto de autores (por nome)
+    function makeParetoDataset(label, authorNames, color) {
+      const rows = authorNames
+        .filter(n => countsByAuthor[n])
+        .map(name => {
+          const total = Object.values(countsByAuthor[name])
+            .reduce((s,e)=> s + (e?.allyears || 0), 0);
+          return { name, total };
+        })
+        .filter(r => r.total > 0);
+
+      if (rows.length === 0) {
+        return {
+          label,
+          data: [{x:0,y:0,names:[]},{x:100,y:100,names:[]}],
+          borderColor: color, backgroundColor: color,
+          fill:false, borderWidth:2, tension:0.25, clip:false,
+          pointRadius: (ctx)=> (ctx?.raw?.x===0?0:3),
+          pointHoverRadius: (ctx)=> (ctx?.raw?.x===0?0:6),
+          pointHitRadius:8, pointStyle:'circle'
+        };
+      }
+
+      rows.sort((a,b)=> b.total - a.total);
+      const n = rows.length;
+      const totalAll = rows.reduce((s,r)=> s + r.total, 0);
+
+      let run = 0;
+      const rawPoints = [{x:0, y:0, names:[]}];
+      rows.forEach((r, i) => {
+        run += r.total;
+        const x = +((((i+1)/n)*100).toFixed(1));
+        const y = +(((run/totalAll)*100).toFixed(1));
+        rawPoints.push({ x, y, names: [r.name] });
+      });
+      // só fecha em (100,100) se não chegou naturalmente
+      if (rawPoints[rawPoints.length-1].x !== 100 || rawPoints[rawPoints.length-1].y !== 100) {
+        rawPoints.push({ x:100, y:100, names:[] });
+      }
+
+      // AGRUPA pontos idênticos (mesmo x,y) juntando os nomes
+      const key = (p) => `${p.x}|${p.y}`;
+      const grouped = new Map();
+      rawPoints.forEach(p => {
+        const k = key(p);
+        if (!grouped.has(k)) grouped.set(k, { x: p.x, y: p.y, names: [...(p.names||[])] });
+        else {
+          const g = grouped.get(k);
+          g.names.push(...(p.names||[]));
+        }
+      });
+
+      const points = Array.from(grouped.values());
+
+      return {
+        label,
+        data: points,
+        borderColor: color, backgroundColor: color,
+        fill:false, borderWidth:2, tension:0.25, clip:false,
+        pointRadius: (ctx)=> (ctx?.raw?.x===0?0:3),
+        pointHoverRadius: (ctx)=> (ctx?.raw?.x===0?0:6),
+        pointHitRadius:8, pointStyle:'circle'
+      };
+    }
+
+
+    // 3) Se houver 2+ grupos informados, plote multi-linha; senão, uma única curva
+    const selectedGroups = selectedCVs.filter(it => it.groupType === "Grupos");
+    const temGruposSuficientes =
+      selectedGroups.length >= 2 &&
+      groupMembersByName &&
+      Object.keys(groupMembersByName).length >= 2;
+
+    // multi-séries apenas se a checkbox estiver ON e houver grupos válidos
+    const multiGroup = paretoPorGrupo && temGruposSuficientes;
+
+    let datasets = [];
+    if (multiGroup) {
+      // curvas por grupo (uma linha por grupo)
+      const groupNames = Object.keys(groupMembersByName);
+      groupNames.forEach((gName, idx) => {
+        const members = (groupMembersByName[gName] || []).filter(Boolean);
+        const ds = makeParetoDataset(gName, members, palette[idx % palette.length]);
+        if (ds.data && ds.data.length >= 2) datasets.push(ds);
+      });
+    } else {
+      // curva única juntando todos os autores
+      const allAuthors = Object.keys(countsByAuthor);
+      const ds = makeParetoDataset('', allAuthors, palette[0]);
+      datasets = [ds];
+    }
+
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      plugins: {
+        legend: { display: multiGroup },
+        tooltip: {
+          // Captura vários pontos no mesmo local sem exigir “intersect”
+          mode: 'nearest',
+          intersect: true,
+          callbacks: {
+            title: (items) => {
+              // Coleta todos os pontos próximos do mesmo (x,y) em TODAS as séries
+              const ctx   = items?.[0];
+              const chart = ctx?.chart;
+              const x0    = ctx?.parsed?.x;
+              const y0    = ctx?.parsed?.y;
+
+              if (!chart || x0 == null || y0 == null) return '';
+
+              const EPS = 0.2; // tolerância p/ considerar “mesmo ponto”
+              const labels = [];
+
+              chart.data.datasets.forEach((ds) => {
+                (ds.data || []).forEach((p) => {
+                  const px = (p?.x ?? p?.parsed?.x);
+                  const py = (p?.y ?? p?.parsed?.y);
+                  if (px == null || py == null) return;
+                  if (Math.abs(px - x0) <= EPS && Math.abs(py - y0) <= EPS) {
+                    // nomes pode ser string ou array de nomes
+                    const arr = Array.isArray(p.names) ? p.names : (p.name ? [p.name] : []);
+                    if (arr.length) {
+                      // Se houver legenda (multiGroup), prefixa pelo nome da série
+                      if (chart.options?.plugins?.legend?.display && ds.label) {
+                        labels.push(`${ds.label}: ${arr.join(', ')}`);
+                      } else {
+                        labels.push(...arr);
+                      }
+                    }
+                  }
+                });
+              });
+
+              // Se não encontrou “names”, não mostra título
+              return labels.length ? labels : '';
+            },
+            label: (item) => {
+              const raw = item.raw || {};
+              // mantém formatação 0/100 “certinha” no X que você já usa:
+              const fmtX = (v) => {
+                if (v >= 99.5) return 100;
+                if (v <= 0.5) return 0;
+                return +v.toFixed(1);
+              };
+              const shownX = fmtX(raw.labelX ?? raw.x);
+              return `Posição: ${shownX}% | Acum.: ${raw.y}%`;
+            }
+          }
+        }
+      },
+      layout: { padding: { right: 4, top: 2 } },
+      scales: {
+        x: {
+          type: 'linear',
+          min: 0,
+          max: 100.5,          // “respiro” pra não cortar o ponto de 100%
+          suggestedMax: 100.5,
+          title: { display: true, text: 'Posição percentual no grupo (0% → 100%)' },
+          afterBuildTicks(scale) {
+            scale.ticks = Array.from({ length: 11 }, (_, i) => ({ value: i * 10 }));
+          },
+          ticks: { callback: (v) => `${v}%`, stepSize: 10, font: { size: 10 } },
+          grid: { drawOnChartArea: false }
+        },
+        y: {
+          beginAtZero: true,
+          max: 101,            // mostra 100% e dá 1% de respiro
+          suggestedMax: 101,
+          title: { display: true, text: 'Percentual acumulado da produção (estrato geral)' },
+          afterBuildTicks(scale) {
+            scale.ticks = Array.from({ length: 11 }, (_, i) => ({ value: i * 10 }));
+          },
+          ticks: { callback: (v) => `${v}%`, stepSize: 10 }
+        }
+      }
+    };
 
     return (
       <Row>
@@ -296,29 +502,17 @@ const DataGraph = ({
                 <div className="col">
                   <h2 className="mb-0">{graphName}</h2>
                 </div>
-                <i color="primary" class="fa-solid fa-file-image pr-3" style={{cursor: "pointer" }}onClick={handleExportPng} title='Exportar gráfico (PNG)'></i>
-                <i color="primary" class="fa-solid fa-file-pdf pr-3" style={{cursor: "pointer" }}onClick={handleExportChart} title='Exportar gráfico (PDF)'></i>
+                <i className="fa-solid fa-file-image pr-3" style={{cursor: "pointer" }} onClick={handleExportPng} title='Exportar gráfico (PNG)'></i>
+                <i className="fa-solid fa-file-pdf pr-3" style={{cursor: "pointer" }} onClick={handleExportChart} title='Exportar gráfico (PDF)'></i>
               </Row>
             </CardHeader>
             <CardBody>
-              <div
-                style={{
-                  width: '100%',
-                  height: '500px',
-                  overflowX: 'auto',
-                  whiteSpace: 'nowrap',
-                  minWidth: '500px',
-                }}
-              >
+              <div style={{ width:'100%', height:'500px', overflowX:'auto', whiteSpace:'nowrap', minWidth:'500px' }}>
                 <Line
                   ref={chartRef}
-                  data={graphicConfig.data}
-                  options={{
-                    ...graphicConfig.options,
-                    responsive: true,           // encolhe/expande com o container
-                    maintainAspectRatio: false, // ignora aspecto padrão
-                  }}
-                  redraw                         // força redraw ao redimensionar
+                  data={{ datasets }}
+                  options={{ ...options, responsive:true, maintainAspectRatio:false }}
+                  redraw
                 />
               </div>
             </CardBody>
@@ -326,7 +520,7 @@ const DataGraph = ({
         </Col>
       </Row>
     );
-  } else {
+  }else {
     xTitle = 'Período';
     yTitle =
       qualisFilter.join('') === 'AB'
@@ -368,11 +562,6 @@ const DataGraph = ({
       )
     );
     
-
-    
-    
-    
-    // agora refaz com estatísticas reais (ou falsas)
     graphicConfig = getBarChatInfo(
       unifiedDataCounts,
       chartYears,

@@ -63,6 +63,23 @@ const Index = ({
   const [totalStatsFromGraph, setTotalStatsFromGraph] = useChromeState("totalStatsFromGraph",{});
   const [showAreaAlert, setShowAreaAlert] = useChromeState("showAreaAlert",true);
 
+  const [paretoPorGrupo, setParetoPorGrupo] = useChromeState("paretoPorGrupo", false);
+
+  function buildGroupMembersByName(selectedCVs, authors) {
+    const map = {};
+    selectedCVs
+      .filter(item => item.groupType === "Grupos" && Array.isArray(item.authors))
+      .forEach(groupItem => {
+        const names = groupItem.authors
+          .map(link => authors[link]?.name)
+          .filter(Boolean);
+        if (names.length > 0) {
+          map[groupItem.name] = names;
+        }
+      });
+    return map;
+  }
+
 
   // hook usando chrome.storage.local
   function useChromeState(key, defaultValue) {
@@ -896,6 +913,24 @@ const Index = ({
                     </option>
                   </Input>
                 </InputGroup>
+                {viewType === "qualisGraphicParetoCVView" && (
+                    <InputGroupText
+                      className="mt-3 ml-2"
+                      style={{ backgroundColor: "transparent", border: "none" }}
+                    >
+                      <Input
+                        addon
+                        aria-label="Checkbox for following text input"
+                        type="checkbox"
+                        style={{ cursor: "pointer" }}
+                        checked={paretoPorGrupo}
+                        onChange={() => setParetoPorGrupo(!paretoPorGrupo)}
+                      />
+                      <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
+                        Uma linha por grupo
+                      </Label>
+                    </InputGroupText>
+                  )}
               </FormGroup>
 
               {/* Statistics */}
@@ -1107,6 +1142,9 @@ const Index = ({
                     isUnifiedChart={true}
                     isParetoChart={true}
                     onTotalStatsReady={setTotalStatsFromGraph}
+                    selectedCVs={selectedCVs}
+                    groupMembersByName={buildGroupMembersByName(selectedCVs, authors)}   // << NOVO
+                    paretoPorGrupo={paretoPorGrupo}                                      // << NOVO
                   />
                 )}
                 {viewType === "scoreTable" && (
