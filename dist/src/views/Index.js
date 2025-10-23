@@ -64,6 +64,10 @@ const Index = ({
   const [showAreaAlert, setShowAreaAlert] = useChromeState("showAreaAlert",true);
 
   const [paretoPorGrupo, setParetoPorGrupo] = useChromeState("paretoPorGrupo", false);
+  const [showQuartisPareto, setShowQuartisPareto] = useChromeState("showQuartisPareto", false);
+
+
+
 
   function buildGroupMembersByName(selectedCVs, authors) {
     const map = {};
@@ -914,23 +918,39 @@ const Index = ({
                   </Input>
                 </InputGroup>
                 {viewType === "qualisGraphicParetoCVView" && (
+                  <FormGroup className="w-100">
                     <InputGroupText
                       className="mt-3 ml-2"
                       style={{ backgroundColor: "transparent", border: "none" }}
                     >
+                      {/* Uma linha por grupo */}
                       <Input
                         addon
                         aria-label="Checkbox for following text input"
                         type="checkbox"
                         style={{ cursor: "pointer" }}
-                        checked={paretoPorGrupo}
+                        checked={!paretoPorGrupo}
                         onChange={() => setParetoPorGrupo(!paretoPorGrupo)}
                       />
                       <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
-                        Uma linha por grupo
+                        Consolidar dados de todos os currículos
+                      </Label>
+
+                      {/* Exibir quartis (Q4 → Q1) */}
+                      <Input
+                        addon
+                        aria-label="Checkbox quartis"
+                        type="checkbox"
+                        style={{ cursor: "pointer" }}
+                        checked={showQuartisPareto}
+                        onChange={() => setShowQuartisPareto(!showQuartisPareto)}
+                      />
+                      <Label style={{ color: "#415e98"}} className="ml-2 mr-3">
+                        Exibir quartis
                       </Label>
                     </InputGroupText>
-                  )}
+                  </FormGroup>
+              )}
               </FormGroup>
 
               {/* Statistics */}
@@ -1143,10 +1163,12 @@ const Index = ({
                     isParetoChart={true}
                     onTotalStatsReady={setTotalStatsFromGraph}
                     selectedCVs={selectedCVs}
-                    groupMembersByName={buildGroupMembersByName(selectedCVs, authors)}   // << NOVO
-                    paretoPorGrupo={paretoPorGrupo}                                      // << NOVO
+                    groupMembersByName={buildGroupMembersByName(selectedCVs, authors)}
+                    paretoPorGrupo={paretoPorGrupo}
+                    showQuartisPareto={showQuartisPareto}            // << repassa para DataGraph
                   />
                 )}
+
                 {viewType === "scoreTable" && (
                   <>
                     {showConsolidado ? (

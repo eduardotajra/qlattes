@@ -54,6 +54,7 @@ const DataGraph = ({
   onTotalStatsReady = () => {},
   groupMembersByName = {},
   paretoPorGrupo = false,
+  showQuartisPareto = false,
 }) => {
   console.log('stats:', stats);
   const chartRef = useRef(null);
@@ -406,40 +407,175 @@ const DataGraph = ({
     }
 
 
+        // 3.1) Dataset fixo de referência (Caso ótimo)
+    const datasetCasoOtimo = {
+      label: 'Caso ótimo',
+      data: [{ x: 0, y: 0 }, { x: 100, y: 100 }],
+      borderColor: 'rgba(150,150,150,0.9)',
+      borderDash: [6, 6],
+      pointRadius: 0,
+      fill: false,
+      borderWidth: 1.5,
+      clip: false,
+      // flag auxiliar para filtrar da legenda
+      _isReference: true,
+    };
+
+
+    // 3.3) Empilha o dataset de referência por último (fica visível sem poluir)
+    datasets.push(datasetCasoOtimo);
+
+    // 4) Anotações (quartis) — só quando a checkbox estiver ligada
+        // 4) Anotações (quartis) — só quando a checkbox estiver ligada
+    // OBS: ordem de inserção agora é Q4 → Q3 → Q2 → Q1 (como solicitado)
+    // Paleta base (mantém seu azul #415e98)
+    const Q_BASE = '65,94,152';
+
+    // 1) Faixas de quartil (Q4 → Q3 → Q2 → Q1) com borda e borda arredondada
+    // Quartis no estilo de referência (Q1 & Q3 cinza; Q2 & Q4 transparente; rótulos “Nº Quartil”)
+    const quartileBoxes = showQuartisPareto ? {
+      q4_quartiles: {
+        type: 'box',
+        xScaleID: 'x', yScaleID: 'y',
+        xMin: 0,    xMax: 25,
+        yMin: 0,    yMax: 101,
+        drawTime: 'beforeDatasetsDraw',
+        backgroundColor: 'rgba(229, 231, 235, 0.5)',   // cinza claro
+        borderWidth: 0,
+        borderColor: 'transparent',
+        display: true,
+        z: 1,
+        label: {
+          content: '4º Quartil',
+          position: { x: 'center', y: 'start' },
+          color: 'rgba(0, 0, 0, 0.7)',
+          enabled: true,
+          display: true,
+          font: { size: 11, weight: 'bold' },
+        },
+      },
+      q3_quartiles: {
+        type: 'box',
+        xScaleID: 'x', yScaleID: 'y',
+        xMin: 25,   xMax: 50,
+        yMin: 0,    yMax: 101,
+        drawTime: 'beforeDatasetsDraw',
+        backgroundColor: 'rgba(255, 255, 255, 0)',     // transparente
+        borderWidth: 0,
+        borderColor: 'transparent',
+        display: true,
+        z: 2,
+        label: {
+          content: '3º Quartil',
+          position: { x: 'center', y: 'start' },
+          color: 'rgba(0, 0, 0, 0.7)',
+          enabled: true,
+          display: true,
+          font: { size: 11, weight: 'bold' },
+        },
+      },
+      q2_quartiles: {
+        type: 'box',
+        xScaleID: 'x', yScaleID: 'y',
+        xMin: 50,   xMax: 75,
+        yMin: 0,    yMax: 101,
+        drawTime: 'beforeDatasetsDraw',
+        backgroundColor: 'rgba(229, 231, 235, 0.5)',   // cinza claro
+        borderWidth: 0,
+        borderColor: 'transparent',
+        display: true,
+        z: 3,
+        label: {
+          content: '2º Quartil',
+          position: { x: 'center', y: 'start' },
+          color: 'rgba(0, 0, 0, 0.7)',
+          enabled: true,
+          display: true,
+          font: { size: 11, weight: 'bold' },
+        },
+      },
+      q1_quartiles: {
+        type: 'box',
+        xScaleID: 'x', yScaleID: 'y',
+        xMin: 75,   xMax: 100,
+        yMin: 0,    yMax: 101,
+        drawTime: 'beforeDatasetsDraw',
+        backgroundColor: 'rgba(255, 255, 255, 0)',     // transparente
+        borderWidth: 0,
+        borderColor: 'transparent',
+        display: true,
+        z: 4,
+        label: {
+          content: '1º Quartil',
+          position: { x: 'center', y: 'start' },
+          color: 'rgba(0, 0, 0, 0.7)',
+          enabled: true,
+          display: true,
+          font: { size: 11, weight: 'bold' },
+        },
+      },
+    } : {};
+
+
+    // 2) Separadores verticais (25/50/75%) discretos
+    const quartileSeparators = showQuartisPareto ? {
+      qSep25: {
+        type: 'line', xScaleID: 'x', yScaleID: 'y',
+        xMin: 25, xMax: 25, yMin: 0, yMax: 101,
+        borderColor: `rgba(${Q_BASE},0.25)`, borderDash: [4,4], borderWidth: 1, z: 5
+      },
+      qSep50: {
+        type: 'line', xScaleID: 'x', yScaleID: 'y',
+        xMin: 50, xMax: 50, yMin: 0, yMax: 101,
+        borderColor: `rgba(${Q_BASE},0.25)`, borderDash: [4,4], borderWidth: 1, z: 5
+      },
+      qSep75: {
+        type: 'line', xScaleID: 'x', yScaleID: 'y',
+        xMin: 75, xMax: 75, yMin: 0, yMax: 101,
+        borderColor: `rgba(${Q_BASE},0.25)`, borderDash: [4,4], borderWidth: 1, z: 5
+      },
+    } : {};
+
+    // 3) “Pílulas” de rótulo dos quartis (topo, centradas em cada faixa)
+    
+
+
     const options = {
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio: 2,
       plugins: {
-        legend: { display: multiGroup },
+        legend: {
+          display: multiGroup,
+          labels: {
+            // Oculta "Caso ótimo" da legenda
+            filter: (item, data) => {
+              const ds = data?.datasets?.[item.datasetIndex];
+              return ds && ds.label !== 'Caso ótimo' && !ds._isReference;
+            }
+          }
+        },
         tooltip: {
-          // Captura vários pontos no mesmo local sem exigir “intersect”
           mode: 'nearest',
           intersect: true,
           callbacks: {
             title: (items) => {
-              // Coleta todos os pontos próximos do mesmo (x,y) em TODAS as séries
               const ctx   = items?.[0];
               const chart = ctx?.chart;
               const x0    = ctx?.parsed?.x;
               const y0    = ctx?.parsed?.y;
-
               if (!chart || x0 == null || y0 == null) return '';
-
-              const EPS = 0.2; // tolerância p/ considerar “mesmo ponto”
+              const EPS = 0.2;
               const labels = [];
-
               chart.data.datasets.forEach((ds) => {
                 (ds.data || []).forEach((p) => {
                   const px = (p?.x ?? p?.parsed?.x);
                   const py = (p?.y ?? p?.parsed?.y);
                   if (px == null || py == null) return;
                   if (Math.abs(px - x0) <= EPS && Math.abs(py - y0) <= EPS) {
-                    // nomes pode ser string ou array de nomes
                     const arr = Array.isArray(p.names) ? p.names : (p.name ? [p.name] : []);
                     if (arr.length) {
-                      // Se houver legenda (multiGroup), prefixa pelo nome da série
-                      if (chart.options?.plugins?.legend?.display && ds.label) {
+                      if ((chart.options?.plugins?.legend?.display) && ds.label && ds.label !== 'Caso ótimo') {
                         labels.push(`${ds.label}: ${arr.join(', ')}`);
                       } else {
                         labels.push(...arr);
@@ -448,13 +584,10 @@ const DataGraph = ({
                   }
                 });
               });
-
-              // Se não encontrou “names”, não mostra título
               return labels.length ? labels : '';
             },
             label: (item) => {
               const raw = item.raw || {};
-              // mantém formatação 0/100 “certinha” no X que você já usa:
               const fmtX = (v) => {
                 if (v >= 99.5) return 100;
                 if (v <= 0.5) return 0;
@@ -464,16 +597,23 @@ const DataGraph = ({
               return `Posição: ${shownX}% | Acum.: ${raw.y}%`;
             }
           }
+        },
+        // Quartis (quando habilitados)
+        annotation: {
+          annotations: showQuartisPareto
+            ? { 
+                ...quartileBoxes,       // faixas
+                ...quartileSeparators,  // linhas
+              }
+            : {}
         }
       },
       layout: { padding: { right: 4, top: 2 } },
       scales: {
         x: {
           type: 'linear',
-          min: 0,
-          max: 100.5,          // “respiro” pra não cortar o ponto de 100%
-          suggestedMax: 100.5,
-          title: { display: true, text: 'Posição percentual no grupo (0% → 100%)' },
+          min: 0, max: 100.5, suggestedMax: 100.5,
+          title: { display: true, text: 'Percentual dos autores mais produtivos' },
           afterBuildTicks(scale) {
             scale.ticks = Array.from({ length: 11 }, (_, i) => ({ value: i * 10 }));
           },
@@ -482,8 +622,7 @@ const DataGraph = ({
         },
         y: {
           beginAtZero: true,
-          max: 101,            // mostra 100% e dá 1% de respiro
-          suggestedMax: 101,
+          max: 101, suggestedMax: 101,
           title: { display: true, text: 'Percentual acumulado da produção (estrato geral)' },
           afterBuildTicks(scale) {
             scale.ticks = Array.from({ length: 11 }, (_, i) => ({ value: i * 10 }));
