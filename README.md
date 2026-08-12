@@ -2,7 +2,7 @@
 >
 > Este é um **fork** da [QLattes](https://github.com/nabormendonca/qlattes), extensão de
 > navegador **concebida e implementada pelo Prof. Dr. [Nabor das Chagas Mendonça](https://github.com/nabormendonca)**
-> (UNIFOR). Todo o crédito pela ferramenta original é dele — o README abaixo é o dele,
+> (UNIFOR). Todo o crédito pela ferramenta original é dele. O README abaixo é o dele,
 > preservado como está.
 >
 > O fork existe para hospedar a minha contribuição, desenvolvida como **Trabalho de
@@ -12,7 +12,7 @@
 > ### 👉 Meu trabalho está na branch [`react+groups`](https://github.com/eduardotajra/qlattes/tree/react%2Bgroups)
 >
 > **Título:** *Evolução da Ferramenta QLattes para Análise, Agrupamento e Exportação de
-> Dados Acadêmicos* — aprovado pela banca em 2025.
+> Dados Acadêmicos*, aprovado pela banca em 2025.
 >
 > O problema de partida: a ferramenta já classificava as publicações de **um** currículo,
 > mas coordenações e comissões raramente lidam com um currículo. Lidam com vários
