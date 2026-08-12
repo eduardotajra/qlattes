@@ -1,3 +1,38 @@
+> ## 📌 Sobre este fork
+>
+> Este é um **fork** da [QLattes](https://github.com/nabormendonca/qlattes), extensão de
+> navegador **concebida e implementada pelo Prof. Dr. [Nabor das Chagas Mendonça](https://github.com/nabormendonca)**
+> (UNIFOR). Todo o crédito pela ferramenta original é dele — o README abaixo é o dele,
+> preservado como está.
+>
+> O fork existe para hospedar a minha contribuição, desenvolvida como **Trabalho de
+> Conclusão de Curso** em Ciência da Computação na UNIFOR, sob orientação do Prof. Nabor
+> e coorientação da Profa. Dra. Maria Andréia Formico Rodrigues, com financiamento do **CNPq**.
+>
+> ### 👉 Meu trabalho está na branch [`react+groups`](https://github.com/eduardotajra/qlattes/tree/react%2Bgroups)
+>
+> **Título:** *Evolução da Ferramenta QLattes para Análise, Agrupamento e Exportação de
+> Dados Acadêmicos* — aprovado pela banca em 2025.
+>
+> O problema de partida: a ferramenta já classificava as publicações de **um** currículo,
+> mas coordenações e comissões raramente lidam com um currículo. Lidam com vários
+> currículos, vários grupos e um recorte de tempo. A evolução foi nessa direção:
+>
+> | | O que foi implementado |
+> |---|---|
+> | **Gestão de currículos** | Organização do conjunto local, busca incremental, ações por currículo, importação e exportação |
+> | **Gestão de grupos** | Criação e reutilização de conjuntos nomeados, com edição, importação, exportação e tratamento de conflitos |
+> | **Painel de análise** | Seleção combinada de currículos e grupos, filtro temporal global, modos de visualização e consolidação, mantendo coerência entre tabelas e gráficos |
+> | **Visualizações** | Tabelas e gráficos por classificação Qualis, pontuação por área, produção acumulada e análise de concentração de produção |
+> | **Exportação** | CSV, XLSX, PDF e PNG, para uso direto em dossiês e relatórios |
+> | **Persistência de contexto** | Seleções e parâmetros preservados entre sessões |
+>
+> 📊 [Ver meus commits](https://github.com/eduardotajra/qlattes/commits/react%2Bgroups/?author=eduardotajra) ·
+> 🔗 [Repositório original](https://github.com/nabormendonca/qlattes) ·
+> 👤 [Meu perfil](https://github.com/eduardotajra)
+
+---
+
 <img src="./img/qlattes-blue-logo-transp-border.png" height=80>
 
 QLattes é uma extensão para navegadores [Chromium](https://www.chromium.org/Home/) (por exemplo, [Chrome](https://www.google.com/chrome/), [Microsoft Edge](https://www.microsoft.com/edge), [Opera](https://www.opera.com/), e [Brave](https://brave.com/)) e [Mozilla Firefox](https://www.mozilla.org/firefox/) que automaticamente classifica os artigos em periódicos identificados nas páginas dos CVs da [Plataforma Lattes](https://lattes.cnpq.br/) do CNPq, de acordo com o novo Qualis da CAPES.
